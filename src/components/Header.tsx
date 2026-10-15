@@ -139,28 +139,27 @@ export default function Header() {
           />
         </div>
 
-        {/* RIGHT: Day of week */}
+        {/* RIGHT: Menu title and day of week */}
         <div className="flex-1 text-right min-w-0">
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-600">
+            Меню
+          </p>
           {isEditMode ? (
-            <div>
-              <select
-                value={menu.dayOfWeek}
-                onChange={(e) => updateDayOfWeek(e.target.value)}
-                className="text-xs uppercase tracking-[0.2em] text-gray-600 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none block w-full text-right cursor-pointer"
-              >
-                {DAYS.map(day => (
-                  <option key={day} value={day}>{day}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={menu.dayOfWeek}
+              onChange={(e) => updateDayOfWeek(e.target.value)}
+              className="text-2xl font-bold mt-0.5 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none block w-full text-right cursor-pointer"
+              style={{ fontFamily: 'Cormorant Garamond, serif' }}
+            >
+              {DAYS.map(day => (
+                <option key={day} value={day}>{day}</option>
+              ))}
+            </select>
           ) : (
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-600">
+            <p className="text-2xl font-bold mt-0.5" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
               {menu.dayOfWeek}
             </p>
           )}
-          <p className="text-2xl font-bold mt-0.5" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-            {menu.dayOfWeek}
-          </p>
         </div>
       </div>
     </div>
