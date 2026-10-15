@@ -10,7 +10,7 @@ interface Props {
 }
 
 export default function MenuBlockCard({ block }: Props) {
-  const { updateBlockTitle, updateBlockWidth, removeBlock, addItem, isEditMode } = useMenu();
+  const { updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice, removeBlock, addItem, isEditMode } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef(0);
@@ -23,10 +23,7 @@ export default function MenuBlockCard({ block }: Props) {
     transform,
     transition,
     isDragging,
-  } = useSortable({
-    id: block.id,
-    data: { type: 'block', block },
-  });
+  } = useSortable({ id: block.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -117,8 +114,22 @@ export default function MenuBlockCard({ block }: Props) {
 
       {/* Block content */}
       <div className="pt-5">
-        {/* Section title */}
+        {/* Section title with checkbox and price */}
         <div className="mb-3 flex items-center gap-2">
+          {/* Fixed price checkbox */}
+          {isEditMode && (
+            <label className="flex items-center gap-1 edit-control cursor-pointer" title="Одна цена за весь блок">
+              <input
+                type="checkbox"
+                checked={block.fixedPrice}
+                onChange={(e) => updateBlockFixedPrice(block.id, e.target.checked)}
+                className="w-3 h-3 accent-black cursor-pointer"
+              />
+              <span className="text-[9px] text-gray-500 uppercase tracking-wider">Фикс. цена</span>
+            </label>
+          )}
+
+          {/* Title */}
           {isEditMode ? (
             <input
               type="text"
@@ -128,7 +139,25 @@ export default function MenuBlockCard({ block }: Props) {
               placeholder="Название раздела"
             />
           ) : (
-            <h2 className="section-title text-base text-black">{block.title}</h2>
+            <h2 className="section-title text-base text-black flex-1">{block.title}</h2>
+          )}
+
+          {/* Block price (if fixedPrice is true) */}
+          {block.fixedPrice && (
+            <div className="flex items-baseline gap-0.5 flex-shrink-0">
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={block.blockPrice}
+                  onChange={(e) => updateBlockPrice(block.id, e.target.value)}
+                  className="text-sm font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12 text-right"
+                  placeholder="450"
+                />
+              ) : (
+                <span className="text-sm font-bold">{block.blockPrice}</span>
+              )}
+              <span className="text-xs text-gray-600">₽</span>
+            </div>
           )}
         </div>
 
@@ -156,7 +185,7 @@ export default function MenuBlockCard({ block }: Props) {
         {/* Menu items */}
         <div className="space-y-1 pl-3">
           {block.items.map((item) => (
-            <MenuItemCard key={item.id} blockId={block.id} item={item} />
+            <MenuItemCard key={item.id} blockId={block.id} item={item} hidePrice={block.fixedPrice} />
           ))}
         </div>
 

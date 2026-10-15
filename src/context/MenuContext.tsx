@@ -5,6 +5,7 @@ const defaultMenu: RestaurantMenu = {
   name: 'РЕСТОРАНЪ',
   logo: null,
   logoSize: 80,
+  dayOfWeek: 'Понедельник',
   headerPromo: {
     title: 'Бизнес-ланч',
     price: '450',
@@ -15,6 +16,8 @@ const defaultMenu: RestaurantMenu = {
       id: 'block-1',
       title: 'Завтраки',
       width: 6,
+      fixedPrice: false,
+      blockPrice: '',
       items: [
         { id: 'item-1', name: 'Омлет с ветчиной', description: 'Яйца, ветчина, сыр, зелень', price: '350', weight: '280' },
         { id: 'item-2', name: 'Сырники со сметаной', description: 'Творожные сырники, сметана, мёд', price: '290', weight: '220' },
@@ -26,6 +29,8 @@ const defaultMenu: RestaurantMenu = {
       id: 'block-2',
       title: 'Бизнес-ланч',
       width: 6,
+      fixedPrice: true,
+      blockPrice: '450',
       items: [
         { id: 'item-4', name: 'Суп дня', description: 'Ежедневно свежий суп', price: '180', weight: '300' },
         { id: 'item-5', name: 'Котлета по-киевски', description: 'С картофельным пюре', price: '320', weight: '350' },
@@ -37,6 +42,8 @@ const defaultMenu: RestaurantMenu = {
       id: 'block-3',
       title: 'Горячие блюда',
       width: 6,
+      fixedPrice: false,
+      blockPrice: '',
       items: [
         { id: 'item-8', name: 'Стейк из сёмги', description: 'На гриле, с овощами и соусом', price: '690', weight: '280' },
         { id: 'item-9', name: 'Ризотто с грибами', description: 'Белые грибы, пармезан, трюфельное масло', price: '520', weight: '320' },
@@ -47,6 +54,8 @@ const defaultMenu: RestaurantMenu = {
       id: 'block-4',
       title: 'Десерты',
       width: 6,
+      fixedPrice: false,
+      blockPrice: '',
       items: [
         { id: 'item-11', name: 'Тирамису', description: 'Классический итальянский десерт', price: '320', weight: '150' },
         { id: 'item-12', name: 'Чизкейк Нью-Йорк', description: 'С ягодным соусом', price: '340', weight: '160' },
@@ -63,10 +72,13 @@ interface MenuContextType {
   updateHeaderPromo: (updates: Partial<HeaderPromo>) => void;
   updateLogo: (logo: string | null) => void;
   updateLogoSize: (size: number) => void;
+  updateDayOfWeek: (day: string) => void;
   addBlock: () => void;
   removeBlock: (id: string) => void;
   updateBlockTitle: (blockId: string, title: string) => void;
   updateBlockWidth: (blockId: string, width: number) => void;
+  updateBlockFixedPrice: (blockId: string, fixedPrice: boolean) => void;
+  updateBlockPrice: (blockId: string, price: string) => void;
   reorderBlocks: (blocks: MenuBlock[]) => void;
   addItem: (blockId: string) => void;
   removeItem: (blockId: string, itemId: string) => void;
@@ -119,10 +131,14 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     setMenu(prev => ({ ...prev, logoSize: Math.max(40, Math.min(160, size)) }));
   }, []);
 
+  const updateDayOfWeek = useCallback((day: string) => {
+    setMenu(prev => ({ ...prev, dayOfWeek: day }));
+  }, []);
+
   const addBlock = useCallback(() => {
     setMenu(prev => ({
       ...prev,
-      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, items: [] }],
+      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, fixedPrice: false, blockPrice: '', items: [] }],
     }));
   }, []);
 
@@ -141,6 +157,20 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     setMenu(prev => ({
       ...prev,
       blocks: prev.blocks.map(b => b.id === blockId ? { ...b, width } : b),
+    }));
+  }, []);
+
+  const updateBlockFixedPrice = useCallback((blockId: string, fixedPrice: boolean) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, fixedPrice } : b),
+    }));
+  }, []);
+
+  const updateBlockPrice = useCallback((blockId: string, price: string) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, blockPrice: price } : b),
     }));
   }, []);
 
@@ -203,8 +233,8 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MenuContext.Provider value={{
-      menu, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize,
-      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, reorderBlocks,
+      menu, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
+      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice, reorderBlocks,
       addItem, removeItem, updateItem,
       addPromotion, removePromotion, updatePromotion,
       isEditMode, toggleEditMode,

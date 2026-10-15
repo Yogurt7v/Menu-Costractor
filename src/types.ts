@@ -11,6 +11,8 @@ export interface MenuBlock {
   title: string;
   items: MenuItem[];
   width: number; // 1-12 grid columns
+  fixedPrice: boolean; // true = одна цена за весь блок
+  blockPrice: string; // цена за весь блок (если fixedPrice = true)
 }
 
 export interface Promotion {
@@ -32,6 +34,7 @@ export interface RestaurantMenu {
   logo: string | null;
   logoSize: number; // px
   headerPromo: HeaderPromo;
+  dayOfWeek: string;
   blocks: MenuBlock[];
   promotions: Promotion[];
 }

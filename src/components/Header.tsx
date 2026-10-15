@@ -1,15 +1,11 @@
 import React, { useRef } from 'react';
 import { useMenu } from '../context/MenuContext';
 
-const DAYS = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const DAYS = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
 
 export default function Header() {
-  const { menu, updateHeaderPromo, updateLogo, updateLogoSize, isEditMode } = useMenu();
+  const { menu, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek, isEditMode } = useMenu();
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const today = new Date();
-  const dayName = DAYS[today.getDay()];
-  const dateStr = today.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -145,9 +141,25 @@ export default function Header() {
 
         {/* RIGHT: Day of week */}
         <div className="flex-1 text-right min-w-0">
-          <p className="text-xs uppercase tracking-[0.2em] text-gray-600">{dateStr}</p>
+          {isEditMode ? (
+            <div>
+              <select
+                value={menu.dayOfWeek}
+                onChange={(e) => updateDayOfWeek(e.target.value)}
+                className="text-xs uppercase tracking-[0.2em] text-gray-600 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none block w-full text-right cursor-pointer"
+              >
+                {DAYS.map(day => (
+                  <option key={day} value={day}>{day}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <p className="text-xs uppercase tracking-[0.2em] text-gray-600">
+              {menu.dayOfWeek}
+            </p>
+          )}
           <p className="text-2xl font-bold mt-0.5" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
-            {dayName}
+            {menu.dayOfWeek}
           </p>
         </div>
       </div>

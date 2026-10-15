@@ -5,9 +5,10 @@ import { MenuItem as MenuItemType } from '../types';
 interface Props {
   blockId: string;
   item: MenuItemType;
+  hidePrice?: boolean;
 }
 
-export default function MenuItemCard({ blockId, item }: Props) {
+export default function MenuItemCard({ blockId, item, hidePrice = false }: Props) {
   const { updateItem, removeItem, isEditMode } = useMenu();
 
   return (
@@ -35,24 +36,28 @@ export default function MenuItemCard({ blockId, item }: Props) {
           <span className="text-sm flex-shrink-0 max-w-[60%] truncate">{item.name}</span>
         )}
 
-        <span className="price-line flex-1 mx-2">
-          <span className="dots"></span>
-        </span>
+        {!hidePrice && (
+          <>
+            <span className="price-line flex-1 mx-2">
+              <span className="dots"></span>
+            </span>
 
-        <div className="flex items-baseline gap-0.5 flex-shrink-0">
-          {isEditMode ? (
-            <input
-              type="text"
-              value={item.price}
-              onChange={(e) => updateItem(blockId, item.id, { price: e.target.value })}
-              className="text-sm text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12"
-              placeholder="0"
-            />
-          ) : (
-            <span className="text-sm font-medium">{item.price}</span>
-          )}
-          <span className="text-xs text-gray-500">₽</span>
-        </div>
+            <div className="flex items-baseline gap-0.5 flex-shrink-0">
+              {isEditMode ? (
+                <input
+                  type="text"
+                  value={item.price}
+                  onChange={(e) => updateItem(blockId, item.id, { price: e.target.value })}
+                  className="text-sm text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12"
+                  placeholder="0"
+                />
+              ) : (
+                <span className="text-sm font-medium">{item.price}</span>
+              )}
+              <span className="text-xs text-gray-500">₽</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Description + weight */}
