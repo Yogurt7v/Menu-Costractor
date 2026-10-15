@@ -121,7 +121,22 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem('restaurant-menu-v3');
     if (saved) {
       try {
-        return { ...defaultMenu, ...JSON.parse(saved) };
+        const parsed = JSON.parse(saved);
+        // Миграция: добавляем недостающие поля для блоков
+        if (parsed.blocks) {
+          parsed.blocks = parsed.blocks.map((block: any) => {
+            const blockPrice = block.blockPrice ?? '';
+            // Если fixedPrice включен, но цена пустая - сбрасываем в false
+            const fixedPrice = (block.fixedPrice && blockPrice) ? true : false;
+            return {
+              ...block,
+              fixedPrice,
+              blockPrice,
+              showTotalWeight: block.showTotalWeight ?? false,
+            };
+          });
+        }
+        return { ...defaultMenu, ...parsed };
       } catch {
         return defaultMenu;
       }

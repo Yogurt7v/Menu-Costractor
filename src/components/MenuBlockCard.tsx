@@ -206,7 +206,7 @@ export default function MenuBlockCard({ block }: Props) {
           )}
 
           {/* Block price (if fixedPrice is true) */}
-          {block.fixedPrice && (
+          {block.fixedPrice && (block.blockPrice || isEditMode) && (
             <div className="flex items-baseline gap-0.5 flex-shrink-0 ml-auto">
               {isEditMode ? (
                 <input
