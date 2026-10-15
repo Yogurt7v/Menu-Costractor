@@ -70,10 +70,10 @@ export default function MenuBlockCard({ block }: Props) {
         blockRef.current = node;
       }}
       style={style}
-      className={`relative bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border-2 transition-all duration-200 ${
-        isDragging ? 'opacity-50 scale-95 z-50' : ''
-      } ${isEditMode ? 'border-amber-200 hover:border-amber-400' : 'border-transparent'} ${
-        isResizing ? 'ring-2 ring-amber-400' : ''
+      className={`relative transition-all duration-200 ${
+        isDragging ? 'opacity-40 z-50' : ''
+      } ${isResizing ? 'ring-1 ring-black' : ''} ${
+        isEditMode ? 'editable-block p-2' : ''
       }`}
     >
       {/* Drag handle */}
@@ -81,10 +81,10 @@ export default function MenuBlockCard({ block }: Props) {
         <div
           {...attributes}
           {...listeners}
-          className="absolute top-2 left-2 cursor-grab active:cursor-grabbing p-1.5 rounded-lg hover:bg-amber-200/50 transition-colors z-10"
+          className="absolute top-1 left-1 cursor-grab active:cursor-grabbing p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
           title="Перетащите для изменения порядка"
         >
-          <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 6h2v2H8V6zm6 0h2v2h-2V6zM8 11h2v2H8v-2zm6 0h2v2h-2v-2zm-6 5h2v2H8v-2zm6 0h2v2h-2v-2z"/>
           </svg>
         </div>
@@ -94,10 +94,10 @@ export default function MenuBlockCard({ block }: Props) {
       {isEditMode && (
         <div
           onMouseDown={handleResizeStart}
-          className="absolute top-2 right-2 cursor-col-resize p-1.5 rounded-lg hover:bg-amber-200/50 transition-colors z-10"
+          className="absolute top-1 right-1 cursor-col-resize p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
           title="Потяните для изменения ширины"
         >
-          <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
             <path d="M8 5v14l7-7z"/>
             <path d="M16 5v14l-7-7z" transform="translate(4, 0)"/>
           </svg>
@@ -108,7 +108,7 @@ export default function MenuBlockCard({ block }: Props) {
       {isEditMode && (
         <button
           onClick={() => removeBlock(block.id)}
-          className="absolute top-2 right-10 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+          className="absolute top-1 right-6 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity edit-control"
           title="Удалить раздел"
         >
           ✕
@@ -116,44 +116,45 @@ export default function MenuBlockCard({ block }: Props) {
       )}
 
       {/* Block content */}
-      <div className="p-4 pt-10">
-        {/* Block title */}
-        <div className="mb-4 flex items-center gap-2">
-          <div className="w-1 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full" />
+      <div className="pt-5">
+        {/* Section title */}
+        <div className="mb-3 flex items-center gap-2">
           {isEditMode ? (
             <input
               type="text"
               value={block.title}
               onChange={(e) => updateBlockTitle(block.id, e.target.value)}
-              className="text-xl font-bold text-amber-900 bg-transparent border-b-2 border-transparent hover:border-amber-300 focus:border-amber-500 outline-none flex-1"
+              className="section-title text-base text-black bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1"
               placeholder="Название раздела"
             />
           ) : (
-            <h2 className="text-xl font-bold text-amber-900">{block.title}</h2>
+            <h2 className="section-title text-base text-black">{block.title}</h2>
           )}
         </div>
 
-        {/* Width indicator */}
+        {/* Width control */}
         {isEditMode && (
-          <div className="mb-3 flex items-center gap-2">
-            <span className="text-[10px] text-amber-500 uppercase tracking-wider">Ширина:</span>
-            <div className="flex gap-0.5">
+          <div className="mb-2 flex items-center gap-1 edit-control">
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Ширина:</span>
+            <div className="flex gap-px">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => updateBlockWidth(block.id, i + 1)}
-                  className={`w-3 h-3 rounded-sm transition-colors ${
-                    i < block.width ? 'bg-amber-400' : 'bg-amber-200/50'
-                  } hover:bg-amber-500`}
+                  className={`w-2 h-2 transition-colors ${
+                    i < block.width ? 'bg-black' : 'bg-gray-200'
+                  } hover:bg-black`}
                 />
               ))}
             </div>
-            <span className="text-[10px] text-amber-500">{block.width}/12</span>
           </div>
         )}
 
+        {/* Divider */}
+        <hr className="header-rule-thin mb-2" />
+
         {/* Menu items */}
-        <div className="space-y-2">
+        <div className="space-y-1 pl-3">
           {block.items.map((item) => (
             <MenuItemCard key={item.id} blockId={block.id} item={item} />
           ))}
@@ -163,12 +164,9 @@ export default function MenuBlockCard({ block }: Props) {
         {isEditMode && (
           <button
             onClick={() => addItem(block.id)}
-            className="mt-3 w-full py-2 border-2 border-dashed border-amber-300 rounded-lg text-amber-600 text-sm hover:border-amber-500 hover:bg-amber-100/50 transition-all flex items-center justify-center gap-1"
+            className="mt-2 ml-3 py-1 text-xs text-gray-500 hover:text-black transition-colors flex items-center gap-1 edit-control"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Добавить блюдо
+            <span className="text-gray-400">+</span> Добавить блюдо
           </button>
         )}
       </div>

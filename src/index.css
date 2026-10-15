@@ -5,23 +5,136 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  
+
   body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'PT Serif', 'Georgia', serif;
+    background: #e8e4df;
+    color: #1a1a1a;
   }
 
-  input:focus,
-  textarea:focus {
-    transition: border-color 0.2s ease;
+  h1, h2, h3, h4 {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
+  }
+
+  input, textarea {
+    font-family: inherit;
   }
 }
 
-@layer utilities {
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+/* A4 page sizing */
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  margin: 20px auto;
+  padding: 15mm 18mm;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  position: relative;
+}
+
+/* Print styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
   }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
   }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .a4-page {
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+    padding: 10mm 15mm;
+    box-shadow: none;
+    page-break-after: always;
+  }
+
+  .a4-page:last-child {
+    page-break-after: auto;
+  }
+
+  /* Hide edit controls in print */
+  .edit-control {
+    display: none !important;
+  }
+
+  .editable-block {
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Make inputs look like text in print */
+  input, textarea {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    resize: none !important;
+    color: inherit !important;
+  }
+}
+
+/* Price alignment */
+.price-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.price-line .dots {
+  flex: 1;
+  border-bottom: 1px dotted #bbb;
+  margin: 0 6px;
+  min-width: 20px;
+  position: relative;
+  top: -3px;
+}
+
+/* Elegant header line */
+.header-rule {
+  border: none;
+  height: 0.5px;
+  background: #333;
+  margin: 0;
+}
+
+.header-rule-thin {
+  border: none;
+  height: 0.5px;
+  background: #ccc;
+  margin: 0;
+}
+
+/* Section title styling */
+.section-title {
+  font-variant: small-caps;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+
+/* Edit mode indicators */
+.edit-mode input {
+  border-bottom: 1px solid #ddd !important;
+}
+
+.edit-mode input:focus {
+  border-bottom-color: #333 !important;
+}
+
+.edit-mode .editable-block {
+  border: 1px dashed #ddd;
+}
+
+.edit-mode .editable-block:hover {
+  border-color: #999;
 }

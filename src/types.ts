@@ -23,6 +23,10 @@ export interface Promotion {
 
 export interface RestaurantMenu {
   name: string;
+  subtitle: string;
+  address: string;
+  phone: string;
+  workHours: string;
   logo: string | null;
   blocks: MenuBlock[];
   promotions: Promotion[];

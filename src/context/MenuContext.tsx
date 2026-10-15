@@ -2,7 +2,11 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { RestaurantMenu, MenuBlock, MenuItem, Promotion } from '../types';
 
 const defaultMenu: RestaurantMenu = {
-  name: 'Ресторан',
+  name: 'РЕСТОРАНЪ',
+  subtitle: 'КУХНЯ И БАР',
+  address: 'ул. Тверская, 15',
+  phone: '+7 (495) 123-45-67',
+  workHours: 'Пн–Пт: 8:00–22:00',
   logo: null,
   blocks: [
     {
@@ -10,9 +14,10 @@ const defaultMenu: RestaurantMenu = {
       title: 'Завтраки',
       width: 6,
       items: [
-        { id: 'item-1', name: 'Омлет с овощами', description: 'Яйца, томаты, перец, зелень', price: '350', weight: '280г' },
-        { id: 'item-2', name: 'Сырники со сметаной', description: 'Творожные сырники с домашней сметаной', price: '290', weight: '220г' },
-        { id: 'item-3', name: 'Каша овсяная', description: 'С ягодами и мёдом', price: '220', weight: '250г' },
+        { id: 'item-1', name: 'Омлет с ветчиной', description: 'Яйца, ветчина, сыр, зелень', price: '350', weight: '280' },
+        { id: 'item-2', name: 'Сырники со сметаной', description: 'Творожные сырники, сметана, мёд', price: '290', weight: '220' },
+        { id: 'item-3', name: 'Каша овсяная', description: 'С ягодами и орехами', price: '220', weight: '250' },
+        { id: 'item-3b', name: 'Круассан с лососем', description: 'Свежий круассан, слабосолёный лосось, крем-сыр', price: '380', weight: '180' },
       ],
     },
     {
@@ -20,27 +25,47 @@ const defaultMenu: RestaurantMenu = {
       title: 'Бизнес-ланч',
       width: 6,
       items: [
-        { id: 'item-4', name: 'Суп дня', description: 'Ежедневно свежий суп', price: '180', weight: '300мл' },
-        { id: 'item-5', name: 'Котлета с пюре', description: 'Домашняя котлета с картофельным пюре', price: '320', weight: '350г' },
-        { id: 'item-6', name: 'Салат Цезарь', description: 'С курицей и соусом', price: '280', weight: '200г' },
-        { id: 'item-7', name: 'Компот', description: 'Домашний компот из сезонных ягод', price: '120', weight: '300мл' },
+        { id: 'item-4', name: 'Суп дня', description: 'Ежедневно свежий суп', price: '180', weight: '300' },
+        { id: 'item-5', name: 'Котлета по-киевски', description: 'С картофельным пюре', price: '320', weight: '350' },
+        { id: 'item-6', name: 'Салат Цезарь', description: 'С курицей и пармезаном', price: '280', weight: '200' },
+        { id: 'item-7', name: 'Компот / Морс', description: 'Домашний, из сезонных ягод', price: '120', weight: '300' },
+      ],
+    },
+    {
+      id: 'block-3',
+      title: 'Горячие блюда',
+      width: 6,
+      items: [
+        { id: 'item-8', name: 'Стейк из сёмги', description: 'На гриле, с овощами и соусом', price: '690', weight: '280' },
+        { id: 'item-9', name: 'Ризотто с грибами', description: 'Белые грибы, пармезан, трюфельное масло', price: '520', weight: '320' },
+        { id: 'item-10', name: 'Медальоны из телятины', description: 'С пюре из сельдерея', price: '780', weight: '300' },
+      ],
+    },
+    {
+      id: 'block-4',
+      title: 'Десерты',
+      width: 6,
+      items: [
+        { id: 'item-11', name: 'Тирамису', description: 'Классический итальянский десерт', price: '320', weight: '150' },
+        { id: 'item-12', name: 'Чизкейк Нью-Йорк', description: 'С ягодным соусом', price: '340', weight: '160' },
+        { id: 'item-13', name: 'Штрудель яблочный', description: 'С ванильным мороженым', price: '290', weight: '180' },
       ],
     },
   ],
   promotions: [
     {
       id: 'promo-1',
-      title: 'Счастливые часы',
-      description: 'Скидка 20% на все напитки с 14:00 до 17:00',
-      discount: '20%',
-      validUntil: 'До конца месяца',
+      title: 'Бизнес-ланч',
+      description: 'Комплексный обед: суп + горячее + напиток',
+      discount: '450 ₽',
+      validUntil: 'Пн–Пт, 12:00–16:00',
     },
   ],
 };
 
 interface MenuContextType {
   menu: RestaurantMenu;
-  updateMenuName: (name: string) => void;
+  updateMenuField: (field: keyof RestaurantMenu, value: string | null) => void;
   updateLogo: (logo: string | null) => void;
   addBlock: () => void;
   removeBlock: (id: string) => void;
@@ -65,10 +90,10 @@ function generateId() {
 
 export function MenuProvider({ children }: { children: React.ReactNode }) {
   const [menu, setMenu] = useState<RestaurantMenu>(() => {
-    const saved = localStorage.getItem('restaurant-menu');
+    const saved = localStorage.getItem('restaurant-menu-v2');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        return { ...defaultMenu, ...JSON.parse(saved) };
       } catch {
         return defaultMenu;
       }
@@ -79,11 +104,11 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   const [isEditMode, setIsEditMode] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('restaurant-menu', JSON.stringify(menu));
+    localStorage.setItem('restaurant-menu-v2', JSON.stringify(menu));
   }, [menu]);
 
-  const updateMenuName = useCallback((name: string) => {
-    setMenu(prev => ({ ...prev, name }));
+  const updateMenuField = useCallback((field: keyof RestaurantMenu, value: string | null) => {
+    setMenu(prev => ({ ...prev, [field]: value }));
   }, []);
 
   const updateLogo = useCallback((logo: string | null) => {
@@ -174,7 +199,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MenuContext.Provider value={{
-      menu, updateMenuName, updateLogo, addBlock, removeBlock,
+      menu, updateMenuField, updateLogo, addBlock, removeBlock,
       updateBlockTitle, updateBlockWidth, reorderBlocks,
       addItem, removeItem, updateItem,
       addPromotion, removePromotion, updatePromotion,

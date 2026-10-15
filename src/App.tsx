@@ -42,23 +42,25 @@ function MenuEditor() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
+    <div className="min-h-screen bg-[#e8e4df]">
       <Toolbar />
-      <Header />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      {/* A4 Page */}
+      <div className={`a4-page ${isEditMode ? 'edit-mode' : ''}`}>
+        {/* Page header */}
+        <Header />
+
         {/* Promotions section */}
         {menu.promotions.length > 0 && (
-          <section className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-red-400 to-orange-400 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
-                </svg>
-              </div>
-              <h2 className="text-lg font-bold text-red-800">Акции и спецпредложения</h2>
+          <section className="mb-6">
+            <div className="flex items-center gap-3 mb-3">
+              <hr className="header-rule flex-1" />
+              <h2 className="text-xs uppercase tracking-[0.2em] text-gray-600 font-medium px-2">
+                Спецпредложения
+              </h2>
+              <hr className="header-rule flex-1" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               {menu.promotions.map((promo) => (
                 <PromotionCard key={promo.id} promotion={promo} />
               ))}
@@ -66,7 +68,7 @@ function MenuEditor() {
           </section>
         )}
 
-        {/* Menu blocks */}
+        {/* Menu blocks grid */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -76,7 +78,7 @@ function MenuEditor() {
             items={menu.blocks.map((b) => b.id)}
             strategy={rectSortingStrategy}
           >
-            <div className="grid grid-cols-12 gap-4 auto-rows-auto">
+            <div className="grid grid-cols-12 gap-x-4 gap-y-2 auto-rows-auto">
               {menu.blocks.map((block) => (
                 <MenuBlockCard key={block.id} block={block} />
               ))}
@@ -86,27 +88,36 @@ function MenuEditor() {
 
         {/* Empty state */}
         {menu.blocks.length === 0 && (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
-              <svg className="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-            <p className="text-amber-600 text-lg">Добавьте первый раздел меню</p>
-            <p className="text-amber-400 text-sm mt-1">Нажмите кнопку «Раздел» на панели выше</p>
+          <div className="text-center py-20">
+            <p className="text-gray-400 text-sm uppercase tracking-wider">Добавьте раздел меню</p>
+            <p className="text-gray-300 text-xs mt-1">Нажмите «+ Раздел» на панели выше</p>
           </div>
         )}
-      </main>
 
-      {/* Footer */}
-      <footer className="bg-amber-900/90 text-amber-200/80 text-center py-4 text-sm mt-12">
-        <p>© 2024 {menu.name} • Меню ресторана</p>
-        {isEditMode && (
-          <p className="text-amber-400/60 text-xs mt-1">
-            💡 Перетаскивайте блоки за иконку ≡ • Изменяйте ширину кнопками или перетаскиванием • Данные сохраняются автоматически
+        {/* Footer */}
+        <div className="mt-8 pt-4 border-t border-gray-200 text-center">
+          <div className="flex items-center gap-3 justify-center mb-2">
+            <hr className="header-rule-thin flex-1 max-w-[60px]" />
+            <span className="text-gray-300 text-[10px]">✦</span>
+            <hr className="header-rule-thin flex-1 max-w-[60px]" />
+          </div>
+          <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em]">
+            {menu.name} · {menu.address}
           </p>
-        )}
-      </footer>
+          {menu.phone && (
+            <p className="text-[10px] text-gray-400 mt-0.5">{menu.phone}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Help text */}
+      {isEditMode && (
+        <div className="no-print max-w-[210mm] mx-auto px-4 py-3 text-center">
+          <p className="text-[10px] text-gray-400 uppercase tracking-wider">
+            Перетаскивайте блоки за иконку ≡ · Изменяйте ширину кнопками или перетаскиванием · Данные сохраняются автоматически
+          </p>
+        </div>
+      )}
     </div>
   );
 }
