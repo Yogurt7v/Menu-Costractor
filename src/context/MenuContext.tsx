@@ -93,6 +93,7 @@ interface MenuContextType {
   updateBlockTitleStyle: (blockId: string, style: TextStyle) => void;
   updateBlockBorder: (blockId: string, updates: { borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double'; borderWidth?: number; borderColor?: string }) => void;
   updateBlockShowTotalWeight: (blockId: string, show: boolean) => void;
+  updateBlockSyncStyles: (blockId: string, sync: boolean) => void;
   reorderBlocks: (blocks: MenuBlock[]) => void;
   addItem: (blockId: string) => void;
   removeItem: (blockId: string, itemId: string) => void;
@@ -133,6 +134,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
               fixedPrice,
               blockPrice,
               showTotalWeight: block.showTotalWeight ?? false,
+              syncStyles: block.syncStyles ?? false,
             };
           });
         }
@@ -189,7 +191,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   const addBlock = useCallback(() => {
     setMenu(prev => ({
       ...prev,
-      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, fixedPrice: false, blockPrice: '', items: [] }],
+      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, fixedPrice: false, blockPrice: '', showTotalWeight: false, syncStyles: false, items: [] }],
     }));
   }, []);
 
@@ -246,6 +248,13 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const updateBlockSyncStyles = useCallback((blockId: string, sync: boolean) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, syncStyles: sync } : b),
+    }));
+  }, []);
+
   const reorderBlocks = useCallback((blocks: MenuBlock[]) => {
     setMenu(prev => ({ ...prev, blocks }));
   }, []);
@@ -284,33 +293,40 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   const updateItemNameStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
     setMenu(prev => ({
       ...prev,
-      blocks: prev.blocks.map(b =>
-        b.id === blockId
-          ? { ...b, items: b.items.map(i => i.id === itemId ? { ...i, nameStyle: style } : i) }
-          : b
-      ),
+      blocks: prev.blocks.map(b => {
+        if (b.id !== blockId) return b;
+        // Если синхронизация включена, применяем стиль ко всем блюдам
+        if (b.syncStyles) {
+          return { ...b, items: b.items.map(i => ({ ...i, nameStyle: style })) };
+        }
+        return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, nameStyle: style } : i) };
+      }),
     }));
   }, []);
 
   const updateItemDescriptionStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
     setMenu(prev => ({
       ...prev,
-      blocks: prev.blocks.map(b =>
-        b.id === blockId
-          ? { ...b, items: b.items.map(i => i.id === itemId ? { ...i, descriptionStyle: style } : i) }
-          : b
-      ),
+      blocks: prev.blocks.map(b => {
+        if (b.id !== blockId) return b;
+        if (b.syncStyles) {
+          return { ...b, items: b.items.map(i => ({ ...i, descriptionStyle: style })) };
+        }
+        return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, descriptionStyle: style } : i) };
+      }),
     }));
   }, []);
 
   const updateItemPriceStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
     setMenu(prev => ({
       ...prev,
-      blocks: prev.blocks.map(b =>
-        b.id === blockId
-          ? { ...b, items: b.items.map(i => i.id === itemId ? { ...i, priceStyle: style } : i) }
-          : b
-      ),
+      blocks: prev.blocks.map(b => {
+        if (b.id !== blockId) return b;
+        if (b.syncStyles) {
+          return { ...b, items: b.items.map(i => ({ ...i, priceStyle: style })) };
+        }
+        return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, priceStyle: style } : i) };
+      }),
     }));
   }, []);
 
@@ -361,7 +377,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     <MenuContext.Provider value={{
       menu, savedConfigs, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
       addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
-      updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, reorderBlocks,
+      updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, updateBlockSyncStyles, reorderBlocks,
       addItem, removeItem, updateItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle,
       addPromotion, removePromotion, updatePromotion,
       saveConfiguration, loadConfiguration, deleteConfiguration,

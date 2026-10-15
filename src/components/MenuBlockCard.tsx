@@ -17,7 +17,7 @@ export default function MenuBlockCard({ block }: Props) {
   const {
     updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
     removeBlock, addItem, isEditMode, updateBlockTitleStyle, updateBlockBorder,
-    updateBlockShowTotalWeight
+    updateBlockShowTotalWeight, updateBlockSyncStyles
   } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
   const [showStyleControls, setShowStyleControls] = useState(false);
@@ -290,6 +290,15 @@ export default function MenuBlockCard({ block }: Props) {
                     className="w-3 h-3 accent-black cursor-pointer"
                   />
                   <span className="text-[9px] text-gray-500 uppercase tracking-wider">Показывать общий вес ({totalWeight}г)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={block.syncStyles || false}
+                    onChange={(e) => updateBlockSyncStyles(block.id, e.target.checked)}
+                    className="w-3 h-3 accent-black cursor-pointer"
+                  />
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">Синхронизировать стили блюд</span>
                 </div>
               </div>
             )}

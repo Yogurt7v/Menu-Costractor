@@ -27,6 +27,7 @@ export interface MenuBlock {
   borderWidth?: number;
   borderColor?: string;
   showTotalWeight?: boolean; // показывать общий вес
+  syncStyles?: boolean; // синхронизировать стили всех блюд
 }
 
 export interface SavedConfiguration {
