@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMenu } from '../context/MenuContext';
-import { MenuItem as MenuItemType } from '../types';
+import { MenuItem as MenuItemType, TextStyle } from '../types';
+import TextStyleControl from './TextStyleControl';
 
 interface Props {
   blockId: string;
@@ -8,8 +9,17 @@ interface Props {
   hidePrice?: boolean;
 }
 
+const DEFAULT_NAME_STYLE: TextStyle = { fontSize: 14, fontFamily: 'PT Serif, Georgia, serif', fontWeight: 400 };
+const DEFAULT_DESC_STYLE: TextStyle = { fontSize: 12, fontFamily: 'PT Serif, Georgia, serif', fontWeight: 400 };
+const DEFAULT_PRICE_STYLE: TextStyle = { fontSize: 14, fontFamily: 'PT Serif, Georgia, serif', fontWeight: 500 };
+
 export default function MenuItemCard({ blockId, item, hidePrice = false }: Props) {
-  const { updateItem, removeItem, isEditMode } = useMenu();
+  const { updateItem, removeItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle, isEditMode } = useMenu();
+  const [showStyleControls, setShowStyleControls] = useState(false);
+
+  const nameStyle = item.nameStyle || DEFAULT_NAME_STYLE;
+  const descStyle = item.descriptionStyle || DEFAULT_DESC_STYLE;
+  const priceStyle = item.priceStyle || DEFAULT_PRICE_STYLE;
 
   return (
     <div className="group relative py-1.5">
@@ -29,11 +39,25 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
             type="text"
             value={item.name}
             onChange={(e) => updateItem(blockId, item.id, { name: e.target.value })}
-            className="text-sm bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-shrink-0 max-w-[60%]"
+            className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-shrink-0 max-w-[60%]"
+            style={{
+              fontSize: `${nameStyle.fontSize}px`,
+              fontFamily: nameStyle.fontFamily,
+              fontWeight: nameStyle.fontWeight,
+            }}
             placeholder="Название"
           />
         ) : (
-          <span className="text-sm flex-shrink-0 max-w-[60%] truncate">{item.name}</span>
+          <span
+            className="flex-shrink-0 max-w-[60%] truncate"
+            style={{
+              fontSize: `${nameStyle.fontSize}px`,
+              fontFamily: nameStyle.fontFamily,
+              fontWeight: nameStyle.fontWeight,
+            }}
+          >
+            {item.name}
+          </span>
         )}
 
         {!hidePrice && (
@@ -48,13 +72,26 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
                   type="text"
                   value={item.price}
                   onChange={(e) => updateItem(blockId, item.id, { price: e.target.value })}
-                  className="text-sm text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12"
+                  className="text-right bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12"
+                  style={{
+                    fontSize: `${priceStyle.fontSize}px`,
+                    fontFamily: priceStyle.fontFamily,
+                    fontWeight: priceStyle.fontWeight,
+                  }}
                   placeholder="0"
                 />
               ) : (
-                <span className="text-sm font-medium">{item.price}</span>
+                <span
+                  style={{
+                    fontSize: `${priceStyle.fontSize}px`,
+                    fontFamily: priceStyle.fontFamily,
+                    fontWeight: priceStyle.fontWeight,
+                  }}
+                >
+                  {item.price}
+                </span>
               )}
-              <span className="text-xs text-gray-500">₽</span>
+              <span className="text-gray-500" style={{ fontSize: `${Math.max(10, priceStyle.fontSize - 2)}px` }}>₽</span>
             </div>
           </>
         )}
@@ -68,12 +105,26 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
               type="text"
               value={item.description}
               onChange={(e) => updateItem(blockId, item.id, { description: e.target.value })}
-              className="text-xs text-gray-500 italic bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1"
+              className="italic bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1"
+              style={{
+                fontSize: `${descStyle.fontSize}px`,
+                fontFamily: descStyle.fontFamily,
+                fontWeight: descStyle.fontWeight,
+              }}
               placeholder="Описание"
             />
           ) : (
             item.description && (
-              <span className="text-xs text-gray-500 italic">{item.description}</span>
+              <span
+                className="italic text-gray-500"
+                style={{
+                  fontSize: `${descStyle.fontSize}px`,
+                  fontFamily: descStyle.fontFamily,
+                  fontWeight: descStyle.fontWeight,
+                }}
+              >
+                {item.description}
+              </span>
             )
           )}
 
@@ -82,13 +133,54 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
               type="text"
               value={item.weight || ''}
               onChange={(e) => updateItem(blockId, item.id, { weight: e.target.value })}
-              className="text-xs text-gray-400 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-10 text-right"
+              className="text-gray-400 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-10 text-right"
               placeholder="г"
             />
           ) : (
             item.weight && (
               <span className="text-xs text-gray-400">{item.weight} г</span>
             )
+          )}
+        </div>
+      )}
+
+      {/* Style controls toggle */}
+      {isEditMode && (
+        <div className="edit-control">
+          <button
+            onClick={() => setShowStyleControls(!showStyleControls)}
+            className="text-[9px] text-gray-400 hover:text-black transition-colors mt-1 flex items-center gap-1"
+          >
+            <span>🎨</span>
+            <span>{showStyleControls ? 'Скрыть стили' : 'Стили'}</span>
+          </button>
+
+          {showStyleControls && (
+            <div className="mt-2 space-y-2 pl-2 border-l border-gray-200">
+              <div>
+                <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Название</span>
+                <TextStyleControl
+                  style={nameStyle}
+                  onChange={(s) => updateItemNameStyle(blockId, item.id, s)}
+                />
+              </div>
+              <div>
+                <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Описание</span>
+                <TextStyleControl
+                  style={descStyle}
+                  onChange={(s) => updateItemDescriptionStyle(blockId, item.id, s)}
+                />
+              </div>
+              {!hidePrice && (
+                <div>
+                  <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Цена</span>
+                  <TextStyleControl
+                    style={priceStyle}
+                    onChange={(s) => updateItemPriceStyle(blockId, item.id, s)}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

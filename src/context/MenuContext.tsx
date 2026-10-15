@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { RestaurantMenu, MenuBlock, MenuItem, Promotion, HeaderPromo } from '../types';
+import { RestaurantMenu, MenuBlock, MenuItem, Promotion, HeaderPromo, TextStyle } from '../types';
 
 const defaultMenu: RestaurantMenu = {
   name: 'РЕСТОРАНЪ',
@@ -87,10 +87,15 @@ interface MenuContextType {
   updateBlockWidth: (blockId: string, width: number) => void;
   updateBlockFixedPrice: (blockId: string, fixedPrice: boolean) => void;
   updateBlockPrice: (blockId: string, price: string) => void;
+  updateBlockTitleStyle: (blockId: string, style: TextStyle) => void;
+  updateBlockBorder: (blockId: string, updates: { borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double'; borderWidth?: number; borderColor?: string }) => void;
   reorderBlocks: (blocks: MenuBlock[]) => void;
   addItem: (blockId: string) => void;
   removeItem: (blockId: string, itemId: string) => void;
   updateItem: (blockId: string, itemId: string, updates: Partial<MenuItem>) => void;
+  updateItemNameStyle: (blockId: string, itemId: string, style: TextStyle) => void;
+  updateItemDescriptionStyle: (blockId: string, itemId: string, style: TextStyle) => void;
+  updateItemPriceStyle: (blockId: string, itemId: string, style: TextStyle) => void;
   addPromotion: () => void;
   removePromotion: (id: string) => void;
   updatePromotion: (id: string, updates: Partial<Promotion>) => void;
@@ -182,6 +187,20 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const updateBlockTitleStyle = useCallback((blockId: string, style: TextStyle) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, titleStyle: style } : b),
+    }));
+  }, []);
+
+  const updateBlockBorder = useCallback((blockId: string, updates: { borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double'; borderWidth?: number; borderColor?: string }) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, ...updates } : b),
+    }));
+  }, []);
+
   const reorderBlocks = useCallback((blocks: MenuBlock[]) => {
     setMenu(prev => ({ ...prev, blocks }));
   }, []);
@@ -217,6 +236,39 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const updateItemNameStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b =>
+        b.id === blockId
+          ? { ...b, items: b.items.map(i => i.id === itemId ? { ...i, nameStyle: style } : i) }
+          : b
+      ),
+    }));
+  }, []);
+
+  const updateItemDescriptionStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b =>
+        b.id === blockId
+          ? { ...b, items: b.items.map(i => i.id === itemId ? { ...i, descriptionStyle: style } : i) }
+          : b
+      ),
+    }));
+  }, []);
+
+  const updateItemPriceStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b =>
+        b.id === blockId
+          ? { ...b, items: b.items.map(i => i.id === itemId ? { ...i, priceStyle: style } : i) }
+          : b
+      ),
+    }));
+  }, []);
+
   const addPromotion = useCallback(() => {
     setMenu(prev => ({
       ...prev,
@@ -242,8 +294,9 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   return (
     <MenuContext.Provider value={{
       menu, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
-      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice, reorderBlocks,
-      addItem, removeItem, updateItem,
+      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
+      updateBlockTitleStyle, updateBlockBorder, reorderBlocks,
+      addItem, removeItem, updateItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle,
       addPromotion, removePromotion, updatePromotion,
       isEditMode, toggleEditMode,
     }}>

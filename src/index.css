@@ -138,3 +138,60 @@
 .edit-mode .editable-block:hover {
   border-color: #999;
 }
+
+/* Decorative borders */
+.decorative-border {
+  position: relative;
+}
+
+.decorative-border::before,
+.decorative-border::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid currentColor;
+  opacity: 0.3;
+}
+
+.decorative-border::before {
+  top: -2px;
+  left: -2px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.decorative-border::after {
+  bottom: -2px;
+  right: -2px;
+  border-left: none;
+  border-top: none;
+}
+
+/* Double border style enhancement */
+.border-double-enhanced {
+  border-style: double;
+  border-width: 3px;
+}
+
+/* Ornamental divider */
+.ornamental-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.ornamental-divider::before,
+.ornamental-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.3;
+}
+
+.ornamental-divider span {
+  font-size: 10px;
+  opacity: 0.5;
+}

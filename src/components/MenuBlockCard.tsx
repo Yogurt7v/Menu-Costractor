@@ -2,16 +2,24 @@ import React, { useState, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useMenu } from '../context/MenuContext';
-import { MenuBlock as MenuBlockType } from '../types';
+import { MenuBlock as MenuBlockType, TextStyle } from '../types';
 import MenuItemCard from './MenuItemCard';
+import TextStyleControl from './TextStyleControl';
+import BlockBorderControl from './BlockBorderControl';
 
 interface Props {
   block: MenuBlockType;
 }
 
+const DEFAULT_TITLE_STYLE: TextStyle = { fontSize: 16, fontFamily: 'Cormorant Garamond, Georgia, serif', fontWeight: 500 };
+
 export default function MenuBlockCard({ block }: Props) {
-  const { updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice, removeBlock, addItem, isEditMode } = useMenu();
+  const {
+    updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
+    removeBlock, addItem, isEditMode, updateBlockTitleStyle, updateBlockBorder
+  } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
+  const [showStyleControls, setShowStyleControls] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -25,10 +33,25 @@ export default function MenuBlockCard({ block }: Props) {
     isDragging,
   } = useSortable({ id: block.id });
 
+  const titleStyle = block.titleStyle || DEFAULT_TITLE_STYLE;
+
+  const borderStyle = block.borderStyle || 'none';
+  const borderWidth = block.borderWidth || 1;
+  const borderColor = block.borderColor || '#000000';
+
+  const borderCss = borderStyle !== 'none'
+    ? {
+        border: `${borderWidth}px ${borderStyle} ${borderColor}`,
+        padding: '12px',
+        color: borderColor,
+      }
+    : {};
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     gridColumn: `span ${block.width}`,
+    ...borderCss,
   };
 
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -70,8 +93,8 @@ export default function MenuBlockCard({ block }: Props) {
       className={`relative transition-all duration-200 ${
         isDragging ? 'opacity-40 z-50' : ''
       } ${isResizing ? 'ring-1 ring-black' : ''} ${
-        isEditMode ? 'editable-block p-2' : ''
-      }`}
+        isEditMode ? 'editable-block' : ''
+      } ${borderStyle !== 'none' ? 'decorative-border' : ''}`}
     >
       {/* Drag handle */}
       {isEditMode && (
@@ -105,7 +128,7 @@ export default function MenuBlockCard({ block }: Props) {
       {isEditMode && (
         <button
           onClick={() => removeBlock(block.id)}
-          className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700 transition-colors edit-control shadow-sm"
+          className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700 transition-colors edit-control shadow-sm z-20"
           title="Удалить раздел"
         >
           ✕
@@ -135,11 +158,29 @@ export default function MenuBlockCard({ block }: Props) {
               type="text"
               value={block.title}
               onChange={(e) => updateBlockTitle(block.id, e.target.value)}
-              className="section-title text-base text-black bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1 min-w-0 truncate"
+              className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1 min-w-0"
+              style={{
+                fontSize: `${titleStyle.fontSize}px`,
+                fontFamily: titleStyle.fontFamily,
+                fontWeight: titleStyle.fontWeight,
+                fontVariant: 'small-caps',
+                letterSpacing: '0.15em',
+              }}
               placeholder="Название раздела"
             />
           ) : (
-            <h2 className="section-title text-base text-black flex-1 min-w-0 truncate">{block.title}</h2>
+            <h2
+              className="flex-1 min-w-0 truncate"
+              style={{
+                fontSize: `${titleStyle.fontSize}px`,
+                fontFamily: titleStyle.fontFamily,
+                fontWeight: titleStyle.fontWeight,
+                fontVariant: 'small-caps',
+                letterSpacing: '0.15em',
+              }}
+            >
+              {block.title}
+            </h2>
           )}
 
           {/* Block price (if fixedPrice is true) */}
@@ -150,11 +191,23 @@ export default function MenuBlockCard({ block }: Props) {
                   type="text"
                   value={block.blockPrice}
                   onChange={(e) => updateBlockPrice(block.id, e.target.value)}
-                  className="text-sm font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12 text-right"
+                  className="font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-12 text-right"
+                  style={{
+                    fontSize: `${titleStyle.fontSize - 2}px`,
+                    fontFamily: titleStyle.fontFamily,
+                  }}
                   placeholder="450"
                 />
               ) : (
-                <span className="text-sm font-bold whitespace-nowrap">{block.blockPrice}</span>
+                <span
+                  className="font-bold whitespace-nowrap"
+                  style={{
+                    fontSize: `${titleStyle.fontSize - 2}px`,
+                    fontFamily: titleStyle.fontFamily,
+                  }}
+                >
+                  {block.blockPrice}
+                </span>
               )}
               <span className="text-xs text-gray-600">₽</span>
             </div>
@@ -176,6 +229,40 @@ export default function MenuBlockCard({ block }: Props) {
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Style and border controls */}
+        {isEditMode && (
+          <div className="mb-2 edit-control">
+            <button
+              onClick={() => setShowStyleControls(!showStyleControls)}
+              className="text-[9px] text-gray-400 hover:text-black transition-colors flex items-center gap-1 uppercase tracking-wider"
+            >
+              <span>🎨</span>
+              <span>{showStyleControls ? 'Скрыть оформление' : 'Оформление раздела'}</span>
+            </button>
+
+            {showStyleControls && (
+              <div className="mt-2 space-y-2 pl-2 border-l border-gray-200">
+                <div>
+                  <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Стиль заголовка</span>
+                  <TextStyleControl
+                    style={titleStyle}
+                    onChange={(s) => updateBlockTitleStyle(block.id, s)}
+                  />
+                </div>
+                <div>
+                  <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Рамка</span>
+                  <BlockBorderControl
+                    block={block}
+                    onBorderStyleChange={(borderStyle) => updateBlockBorder(block.id, { borderStyle })}
+                    onBorderWidthChange={(borderWidth) => updateBlockBorder(block.id, { borderWidth })}
+                    onBorderColorChange={(borderColor) => updateBlockBorder(block.id, { borderColor })}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
