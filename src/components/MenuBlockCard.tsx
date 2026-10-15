@@ -4,8 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useMenu } from '../context/MenuContext';
 import { MenuBlock as MenuBlockType, TextStyle } from '../types';
 import MenuItemCard from './MenuItemCard';
-import TextStyleControl from './TextStyleControl';
-import BlockBorderControl from './BlockBorderControl';
+import SectionStylePanel from './SectionStylePanel';
 
 interface Props {
   block: MenuBlockType;
@@ -20,7 +19,6 @@ export default function MenuBlockCard({ block }: Props) {
     updateBlockShowTotalWeight, updateBlockSyncStyles
   } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
-  const [showStyleControls, setShowStyleControls] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
@@ -255,54 +253,35 @@ export default function MenuBlockCard({ block }: Props) {
 
         {/* Style and border controls */}
         {isEditMode && (
-          <div className="mb-2 edit-control">
-            <button
-              onClick={() => setShowStyleControls(!showStyleControls)}
-              className="text-[9px] text-gray-400 hover:text-black transition-colors flex items-center gap-1 uppercase tracking-wider"
-            >
-              <span>🎨</span>
-              <span>{showStyleControls ? 'Скрыть оформление' : 'Оформление раздела'}</span>
-            </button>
-
-            {showStyleControls && (
-              <div className="mt-2 space-y-2 pl-2 border-l border-gray-200">
-                <div>
-                  <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Стиль заголовка</span>
-                  <TextStyleControl
-                    style={titleStyle}
-                    onChange={(s) => updateBlockTitleStyle(block.id, s)}
-                  />
-                </div>
-                <div>
-                  <span className="text-[9px] text-gray-400 uppercase tracking-wider block mb-1">Рамка</span>
-                  <BlockBorderControl
-                    block={block}
-                    onBorderStyleChange={(borderStyle) => updateBlockBorder(block.id, { borderStyle })}
-                    onBorderWidthChange={(borderWidth) => updateBlockBorder(block.id, { borderWidth })}
-                    onBorderColorChange={(borderColor) => updateBlockBorder(block.id, { borderColor })}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={block.showTotalWeight || false}
-                    onChange={(e) => updateBlockShowTotalWeight(block.id, e.target.checked)}
-                    className="w-3 h-3 accent-black cursor-pointer"
-                  />
-                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">Показывать общий вес ({totalWeight}г)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={block.syncStyles || false}
-                    onChange={(e) => updateBlockSyncStyles(block.id, e.target.checked)}
-                    className="w-3 h-3 accent-black cursor-pointer"
-                  />
-                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">Синхронизировать стили блюд</span>
-                </div>
-              </div>
-            )}
-          </div>
+          <SectionStylePanel
+            titleStyle={titleStyle}
+            onTitleStyleChange={(s) => updateBlockTitleStyle(block.id, s)}
+            borderStyle={borderStyle}
+            borderWidth={borderWidth}
+            borderColor={borderColor}
+            onBorderStyleChange={(borderStyle) => updateBlockBorder(block.id, { borderStyle })}
+            onBorderWidthChange={(borderWidth) => updateBlockBorder(block.id, { borderWidth })}
+            onBorderColorChange={(borderColor) => updateBlockBorder(block.id, { borderColor })}
+          >
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={block.showTotalWeight || false}
+                onChange={(e) => updateBlockShowTotalWeight(block.id, e.target.checked)}
+                className="w-3 h-3 accent-black cursor-pointer"
+              />
+              <span className="text-[9px] text-gray-500 uppercase tracking-wider">Показывать общий вес ({totalWeight}г)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={block.syncStyles || false}
+                onChange={(e) => updateBlockSyncStyles(block.id, e.target.checked)}
+                className="w-3 h-3 accent-black cursor-pointer"
+              />
+              <span className="text-[9px] text-gray-500 uppercase tracking-wider">Синхронизировать стили блюд</span>
+            </div>
+          </SectionStylePanel>
         )}
 
         {/* Divider */}

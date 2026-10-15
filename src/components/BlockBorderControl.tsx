@@ -1,8 +1,9 @@
 import React from 'react';
-import { MenuBlock } from '../types';
 
 interface Props {
-  block: MenuBlock;
+  borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
+  borderWidth?: number;
+  borderColor?: string;
   onBorderStyleChange: (style: 'none' | 'solid' | 'dashed' | 'dotted' | 'double') => void;
   onBorderWidthChange: (width: number) => void;
   onBorderColorChange: (color: string) => void;
@@ -17,14 +18,14 @@ const BORDER_COLORS = [
   { label: 'Золотой', value: '#b8860b' },
 ];
 
-export default function BlockBorderControl({ block, onBorderStyleChange, onBorderWidthChange, onBorderColorChange }: Props) {
+export default function BlockBorderControl({ borderStyle, borderWidth, borderColor, onBorderStyleChange, onBorderWidthChange, onBorderColorChange }: Props) {
   return (
     <div className="flex items-center gap-2 text-[10px] text-gray-500 edit-control flex-wrap">
       <span className="uppercase tracking-wider">Рамка:</span>
 
       {/* Border style */}
       <select
-        value={block.borderStyle || 'none'}
+        value={borderStyle || 'none'}
         onChange={(e) => onBorderStyleChange(e.target.value as any)}
         className="border border-gray-300 rounded px-1 py-0.5 text-[10px] bg-white"
       >
@@ -35,7 +36,7 @@ export default function BlockBorderControl({ block, onBorderStyleChange, onBorde
         <option value="double">Двойная</option>
       </select>
 
-      {block.borderStyle && block.borderStyle !== 'none' && (
+      {borderStyle && borderStyle !== 'none' && (
         <>
           {/* Border width */}
           <div className="flex items-center gap-1">
@@ -44,18 +45,18 @@ export default function BlockBorderControl({ block, onBorderStyleChange, onBorde
               type="range"
               min="1"
               max="5"
-              value={block.borderWidth || 1}
+              value={borderWidth || 1}
               onChange={(e) => onBorderWidthChange(Number(e.target.value))}
               className="w-12 h-1 accent-black"
             />
-            <span className="w-3 text-right">{block.borderWidth || 1}</span>
+            <span className="w-3 text-right">{borderWidth || 1}</span>
           </div>
 
           {/* Border color */}
           <div className="flex items-center gap-1">
             <span>Цвет:</span>
             <select
-              value={block.borderColor || '#000000'}
+              value={borderColor || '#000000'}
               onChange={(e) => onBorderColorChange(e.target.value)}
               className="border border-gray-300 rounded px-1 py-0.5 text-[10px] bg-white"
             >

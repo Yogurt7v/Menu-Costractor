@@ -15,19 +15,24 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { MenuProvider, useMenu } from './context/MenuContext';
-import Header from './components/Header';
+import { HeaderItemKind } from './types';
 import Toolbar from './components/Toolbar';
 import MenuBlockCard from './components/MenuBlockCard';
 import DraggablePromotion from './components/DraggablePromotion';
+import HeaderItemCard, { HEADER_ITEM_IDS } from './components/HeaderItemCard';
 
 interface ListItem {
   id: string;
   type: 'block' | 'promotion';
 }
 
+const DEFAULT_HEADER_ORDER: HeaderItemKind[] = ['headerPromo', 'logo', 'dayOfWeek'];
+
 function MenuEditor() {
   const { menu, reorderBlocks } = useMenu();
-  
+
+  const [headerOrder, setHeaderOrder] = useState<HeaderItemKind[]>(DEFAULT_HEADER_ORDER);
+
   const [itemOrder, setItemOrder] = useState<ListItem[]>(() => {
     const items: ListItem[] = [];
     menu.promotions.forEach(p => items.push({ id: p.id, type: 'promotion' }));
@@ -40,13 +45,13 @@ function MenuEditor() {
     setItemOrder(current => {
       const blockIds = new Set(menu.blocks.map(b => b.id));
       const promoIds = new Set(menu.promotions.map(p => p.id));
-      
+
       // Keep existing order, but remove deleted items
-      const filtered = current.filter(item => 
+      const filtered = current.filter(item =>
         (item.type === 'block' && blockIds.has(item.id)) ||
         (item.type === 'promotion' && promoIds.has(item.id))
       );
-      
+
       // Add new items that aren't in the order yet
       const existingIds = new Set(filtered.map(i => i.id));
       menu.blocks.forEach(b => {
@@ -59,7 +64,7 @@ function MenuEditor() {
           filtered.push({ id: p.id, type: 'promotion' });
         }
       });
-      
+
       return filtered;
     });
   }, [menu.blocks, menu.promotions]);
@@ -72,6 +77,28 @@ function MenuEditor() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
+
+  // Visible header items (respect show flags), in their custom order
+  const headerVisible: Record<HeaderItemKind, boolean> = {
+    headerPromo: menu.showHeaderPromo,
+    logo: menu.showLogo,
+    dayOfWeek: menu.showDay,
+  };
+  const visibleHeaderItems = headerOrder.filter(kind => headerVisible[kind]);
+
+  const handleHeaderDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromKind = headerOrder.find(kind => HEADER_ITEM_IDS[kind] === active.id);
+    const toKind = headerOrder.find(kind => HEADER_ITEM_IDS[kind] === over.id);
+    if (!fromKind || !toKind) return;
+    setHeaderOrder(prev => {
+      const oldIndex = prev.indexOf(fromKind);
+      const newIndex = prev.indexOf(toKind);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+  };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -132,10 +159,32 @@ function MenuEditor() {
 
       {/* A4 Page */}
       <div className="a4-page edit-mode">
-        {/* Page header */}
-        <Header />
+        {/* Header zone */}
+        {visibleHeaderItems.length > 0 && (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleHeaderDragEnd}
+          >
+            <SortableContext
+              items={visibleHeaderItems.map(kind => HEADER_ITEM_IDS[kind])}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="grid grid-cols-12 gap-4">
+                {visibleHeaderItems.map(kind => (
+                  <HeaderItemCard key={kind} kind={kind} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
 
-        {/* All items (blocks + promotions) */}
+        {/* Black divider between header and main menu */}
+        {visibleHeaderItems.length > 0 && (
+          <div className="my-4 border-t border-black" />
+        )}
+
+        {/* Main menu zone */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -153,17 +202,20 @@ function MenuEditor() {
 
         {/* Empty state */}
         {menu.blocks.length === 0 && menu.promotions.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-16">
             <p className="text-gray-400 text-sm uppercase tracking-wider">Добавьте раздел меню или акцию</p>
-            <p className="text-gray-300 text-xs mt-1">Нажмите «+ Раздел» или «+ Акция» на панели выше</p>
+            <p className="text-gray-300 text-xs mt-1">Нажмите «+ Раздел» на панели выше и выберите тип</p>
           </div>
         )}
+
+        {/* Gray divider at the end of the menu */}
+        <div className="mt-6 border-t border-gray-300" />
       </div>
 
       {/* Help text */}
       <div className="no-print max-w-[210mm] mx-auto px-4 py-3 text-center">
         <p className="text-[10px] text-gray-400 uppercase tracking-wider">
-          Перетаскивайте блоки и акции за иконку ≡ · Изменяйте ширину блоков кнопками или перетаскиванием · Данные сохраняются автоматически
+          Перетаскивайте шапку, разделы и акции за иконку ≡ · Изменяйте ширину кнопками или перетаскиванием · Данные сохраняются автоматически
         </p>
       </div>
     </div>

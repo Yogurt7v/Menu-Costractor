@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { RestaurantMenu, MenuBlock, MenuItem, Promotion, HeaderPromo, TextStyle } from '../types';
+import { RestaurantMenu, MenuBlock, MenuItem, Promotion, HeaderPromo, TextStyle, HeaderItemKind, SectionStyle } from '../types';
 
 const defaultMenu: RestaurantMenu = {
   name: 'РЕСТОРАНЪ',
   logo: null,
   logoSize: 80,
+  logoWidth: 4,
+  showLogo: true,
   dayOfWeek: 'Понедельник',
+  dayWidth: 4,
+  showDay: true,
+  headerPromoWidth: 4,
+  showHeaderPromo: true,
   headerPromo: {
     title: 'Бизнес-ланч',
     price: '450',
@@ -84,6 +90,9 @@ interface MenuContextType {
   updateLogo: (logo: string | null) => void;
   updateLogoSize: (size: number) => void;
   updateDayOfWeek: (day: string) => void;
+  addHeaderItem: (kind: HeaderItemKind) => void;
+  removeHeaderItem: (kind: HeaderItemKind) => void;
+  updateHeaderSectionStyle: (kind: 'headerPromo' | 'dayOfWeek', updates: Partial<SectionStyle>) => void;
   addBlock: () => void;
   removeBlock: (id: string) => void;
   updateBlockTitle: (blockId: string, title: string) => void;
@@ -107,6 +116,8 @@ interface MenuContextType {
   saveConfiguration: (name: string) => void;
   loadConfiguration: (id: string) => void;
   deleteConfiguration: (id: string) => void;
+  exportMenu: () => void;
+  importMenu: (file: File) => Promise<void>;
   isEditMode: boolean;
   toggleEditMode: () => void;
 }
@@ -117,28 +128,52 @@ function generateId() {
   return 'id-' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
 }
 
+function clampWidth(value: any, fallback: number): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(3, Math.min(12, n));
+}
+
+const HEADER_FLAG: Record<HeaderItemKind, 'showLogo' | 'showHeaderPromo' | 'showDay'> = {
+  logo: 'showLogo',
+  headerPromo: 'showHeaderPromo',
+  dayOfWeek: 'showDay',
+};
+
+function normalizeMenu(parsed: any): RestaurantMenu {
+  const menu = { ...defaultMenu, ...parsed };
+  menu.headerPromoWidth = clampWidth(menu.headerPromoWidth, defaultMenu.headerPromoWidth);
+  menu.logoWidth = clampWidth(menu.logoWidth, defaultMenu.logoWidth);
+  menu.dayWidth = clampWidth(menu.dayWidth, defaultMenu.dayWidth);
+  menu.showLogo = menu.showLogo === false ? false : true;
+  menu.showHeaderPromo = menu.showHeaderPromo === false ? false : true;
+  menu.showDay = menu.showDay === false ? false : true;
+  if (Array.isArray(menu.blocks)) {
+    menu.blocks = menu.blocks.map((block: any) => {
+      const blockPrice = block.blockPrice ?? '';
+      const fixedPrice = (block.fixedPrice && blockPrice) ? true : false;
+      return {
+        ...block,
+        fixedPrice,
+        blockPrice,
+        showTotalWeight: block.showTotalWeight ?? false,
+        syncStyles: block.syncStyles ?? true,
+        items: Array.isArray(block.items) ? block.items : [],
+      };
+    });
+  } else {
+    menu.blocks = defaultMenu.blocks;
+  }
+  menu.promotions = Array.isArray(menu.promotions) ? menu.promotions : [];
+  return menu;
+}
+
 export function MenuProvider({ children }: { children: React.ReactNode }) {
   const [menu, setMenu] = useState<RestaurantMenu>(() => {
     const saved = localStorage.getItem('restaurant-menu-v3');
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        // Миграция: добавляем недостающие поля для блоков
-        if (parsed.blocks) {
-          parsed.blocks = parsed.blocks.map((block: any) => {
-            const blockPrice = block.blockPrice ?? '';
-            // Если fixedPrice включен, но цена пустая - сбрасываем в false
-            const fixedPrice = (block.fixedPrice && blockPrice) ? true : false;
-            return {
-              ...block,
-              fixedPrice,
-              blockPrice,
-              showTotalWeight: block.showTotalWeight ?? false,
-              syncStyles: block.syncStyles ?? true,
-            };
-          });
-        }
-        return { ...defaultMenu, ...parsed };
+        return normalizeMenu(JSON.parse(saved));
       } catch {
         return defaultMenu;
       }
@@ -186,6 +221,22 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
 
   const updateDayOfWeek = useCallback((day: string) => {
     setMenu(prev => ({ ...prev, dayOfWeek: day }));
+  }, []);
+
+  const addHeaderItem = useCallback((kind: HeaderItemKind) => {
+    setMenu(prev => ({ ...prev, [HEADER_FLAG[kind]]: true }));
+  }, []);
+
+  const removeHeaderItem = useCallback((kind: HeaderItemKind) => {
+    setMenu(prev => ({ ...prev, [HEADER_FLAG[kind]]: false }));
+  }, []);
+
+  const updateHeaderSectionStyle = useCallback((kind: 'headerPromo' | 'dayOfWeek', updates: Partial<SectionStyle>) => {
+    const field = kind === 'headerPromo' ? 'headerPromoStyle' : 'dayStyle';
+    setMenu(prev => ({
+      ...prev,
+      [field]: { ...(prev[field] || {}), ...updates },
+    }));
   }, []);
 
   const addBlock = useCallback(() => {
@@ -361,12 +412,47 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   const loadConfiguration = useCallback((id: string) => {
     const config = savedConfigs.find(c => c.id === id);
     if (config) {
-      setMenu(config.menu);
+      setMenu(normalizeMenu(config.menu));
     }
   }, [savedConfigs]);
 
   const deleteConfiguration = useCallback((id: string) => {
     setSavedConfigs(prev => prev.filter(c => c.id !== id));
+  }, []);
+
+  const exportMenu = useCallback(() => {
+    const dataStr = JSON.stringify(menu, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = (menu.name || 'menu')
+      .replace(/[^\wа-яА-ЯёЁ\- ]+/g, '')
+      .trim()
+      .replace(/\s+/g, '-') || 'menu';
+    a.download = `${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [menu]);
+
+  const importMenu = useCallback(async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      // Поддерживаем и формат меню, и формат сохранённой конфигурации ({ menu: ... })
+      const candidate = data && typeof data === 'object' && data.menu && Array.isArray(data.menu.blocks)
+        ? data.menu
+        : data;
+      if (!candidate || typeof candidate !== 'object' || !Array.isArray(candidate.blocks)) {
+        alert('Ошибка импорта: файл не похож на меню (нет блоков)');
+        return;
+      }
+      setMenu(normalizeMenu(candidate));
+    } catch {
+      alert('Ошибка импорта: не удалось прочитать файл');
+    }
   }, []);
 
   const toggleEditMode = useCallback(() => {
@@ -376,11 +462,13 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   return (
     <MenuContext.Provider value={{
       menu, savedConfigs, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
+      addHeaderItem, removeHeaderItem, updateHeaderSectionStyle,
       addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
       updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, updateBlockSyncStyles, reorderBlocks,
       addItem, removeItem, updateItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle,
       addPromotion, removePromotion, updatePromotion,
       saveConfiguration, loadConfiguration, deleteConfiguration,
+      exportMenu, importMenu,
       isEditMode, toggleEditMode,
     }}>
       {children}

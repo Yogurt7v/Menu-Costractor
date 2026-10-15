@@ -4,6 +4,8 @@ export interface TextStyle {
   fontWeight: number;
 }
 
+export type BorderValue = 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -44,6 +46,10 @@ export interface Promotion {
   discount?: string;
   validUntil?: string;
   price?: string;
+  titleStyle?: TextStyle;
+  borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
+  borderWidth?: number;
+  borderColor?: string;
 }
 
 export interface HeaderPromo {
@@ -52,12 +58,29 @@ export interface HeaderPromo {
   note?: string;
 }
 
+export type HeaderItemKind = 'headerPromo' | 'logo' | 'dayOfWeek';
+
+export interface SectionStyle {
+  titleStyle?: TextStyle;
+  borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
+  borderWidth?: number;
+  borderColor?: string;
+}
+
 export interface RestaurantMenu {
   name: string;
   logo: string | null;
   logoSize: number; // px
+  logoWidth: number; // 1-12 grid columns
+  showLogo: boolean; // показывать логотип в шапке
   headerPromo: HeaderPromo;
+  headerPromoWidth: number; // 1-12 grid columns
+  showHeaderPromo: boolean; // показывать бизнес-ланч в шапке
+  headerPromoStyle?: SectionStyle;
   dayOfWeek: string;
+  dayWidth: number; // 1-12 grid columns
+  showDay: boolean; // показывать день недели в шапке
+  dayStyle?: SectionStyle;
   blocks: MenuBlock[];
   promotions: Promotion[];
 }

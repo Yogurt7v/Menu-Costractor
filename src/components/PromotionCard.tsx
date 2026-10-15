@@ -1,46 +1,60 @@
 import React, { useState, useRef } from 'react';
 import { useMenu } from '../context/MenuContext';
-import { Promotion } from '../types';
+import { Promotion, TextStyle } from '../types';
+import SectionStylePanel from './SectionStylePanel';
 
 interface Props {
   promotion: Promotion;
 }
 
+const DEFAULT_TITLE_STYLE: TextStyle = { fontSize: 14, fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 700 };
+
 export default function PromotionCard({ promotion }: Props) {
   const { updatePromotion, isEditMode } = useMenu();
 
+  const titleStyle = promotion.titleStyle || DEFAULT_TITLE_STYLE;
+  const borderStyle = promotion.borderStyle || 'solid';
+  const borderWidth = promotion.borderWidth || 1;
+  const borderColor = promotion.borderColor || '#000000';
+  const borderCss = borderStyle !== 'none'
+    ? {
+        border: `${borderWidth}px ${borderStyle} ${borderColor}`,
+        color: borderColor,
+      }
+    : {};
+
   return (
-    <div className="border border-black py-3 px-4">
+    <div
+      className={`py-3 px-4 ${borderStyle !== 'none' ? 'decorative-border' : ''}`}
+      style={borderCss}
+    >
+      {/* Section styling (editable) */}
+      {isEditMode && (
+        <SectionStylePanel
+          titleStyle={titleStyle}
+          onTitleStyleChange={(s) => updatePromotion(promotion.id, { titleStyle: s })}
+          borderStyle={borderStyle}
+          borderWidth={borderWidth}
+          borderColor={borderColor}
+          onBorderStyleChange={(borderStyle) => updatePromotion(promotion.id, { borderStyle })}
+          onBorderWidthChange={(borderWidth) => updatePromotion(promotion.id, { borderWidth })}
+          onBorderColorChange={(borderColor) => updatePromotion(promotion.id, { borderColor })}
+        />
+      )}
 
       <div className="flex items-baseline gap-3">
-        {/* Discount badge */}
-        {promotion.discount && (
-          <div className="flex-shrink-0">
-            {isEditMode ? (
-              <input
-                type="text"
-                value={promotion.discount}
-                onChange={(e) => updatePromotion(promotion.id, { discount: e.target.value })}
-                className="text-lg font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-16 text-center"
-                placeholder="450₽"
-              />
-            ) : (
-              <span className="text-lg font-bold">{promotion.discount}</span>
-            )}
-          </div>
-        )}
-
         <div className="flex-1">
           {isEditMode ? (
             <input
               type="text"
               value={promotion.title}
               onChange={(e) => updatePromotion(promotion.id, { title: e.target.value })}
-              className="text-sm font-bold uppercase tracking-wider bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-full"
+              className="uppercase tracking-wider bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-full"
+              style={{ fontSize: `${titleStyle.fontSize}px`, fontFamily: titleStyle.fontFamily, fontWeight: titleStyle.fontWeight }}
               placeholder="Название акции"
             />
           ) : (
-            <h3 className="text-sm font-bold uppercase tracking-wider">{promotion.title}</h3>
+            <h3 className="uppercase tracking-wider" style={{ fontSize: `${titleStyle.fontSize}px`, fontFamily: titleStyle.fontFamily, fontWeight: titleStyle.fontWeight }}>{promotion.title}</h3>
           )}
 
           {isEditMode ? (
