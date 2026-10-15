@@ -28,7 +28,6 @@ export default function MenuBlockCard({ block }: Props) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    gridColumn: `span ${block.width}`,
   };
 
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -66,8 +65,8 @@ export default function MenuBlockCard({ block }: Props) {
         setNodeRef(node);
         blockRef.current = node;
       }}
-      style={style}
-      className={`relative transition-all duration-200 ${
+      style={{ ...style, width: `${(block.width / 12) * 100}%` }}
+      className={`relative transition-all duration-200 mx-auto ${
         isDragging ? 'opacity-40 z-50' : ''
       } ${isResizing ? 'ring-1 ring-black' : ''} ${
         isEditMode ? 'editable-block p-2' : ''

@@ -63,7 +63,15 @@ const defaultMenu: RestaurantMenu = {
       ],
     },
   ],
-  promotions: [],
+  promotions: [
+    {
+      id: 'promo-1',
+      title: 'Бизнес-ланч',
+      description: 'Комплексный обед: суп + горячее + напиток',
+      discount: '450 ₽',
+      validUntil: 'Пн–Пт, 12:00–16:00',
+    },
+  ],
 };
 
 interface MenuContextType {

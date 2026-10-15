@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { useMenu } from '../context/MenuContext';
 import { Promotion } from '../types';
 
@@ -7,18 +7,10 @@ interface Props {
 }
 
 export default function PromotionCard({ promotion }: Props) {
-  const { updatePromotion, removePromotion, isEditMode } = useMenu();
+  const { updatePromotion, isEditMode } = useMenu();
 
   return (
-    <div className="group relative border border-black py-3 px-4 my-2">
-      {isEditMode && (
-        <button
-          onClick={() => removePromotion(promotion.id)}
-          className="absolute -top-2 -right-2 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity edit-control"
-        >
-          ✕
-        </button>
-      )}
+    <div className="border border-black py-3 px-4">
 
       <div className="flex items-baseline gap-3">
         {/* Discount badge */}
