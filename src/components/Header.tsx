@@ -73,7 +73,7 @@ export default function Header() {
               <img
                 src={menu.logo}
                 alt="Логотип"
-                style={{ height: `${menu.logoSize}px`, maxWidth: '200px' }}
+                style={{ height: `${menu.logoSize}px`, maxWidth: '400px' }}
                 className="object-contain"
               />
               {isEditMode && (
@@ -115,7 +115,7 @@ export default function Header() {
               <input
                 type="range"
                 min="40"
-                max="160"
+                max="300"
                 value={menu.logoSize}
                 onChange={(e) => updateLogoSize(Number(e.target.value))}
                 className="w-16 h-1 accent-black"

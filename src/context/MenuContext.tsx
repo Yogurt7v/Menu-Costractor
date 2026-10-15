@@ -179,7 +179,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateLogoSize = useCallback((size: number) => {
-    setMenu(prev => ({ ...prev, logoSize: Math.max(40, Math.min(160, size)) }));
+    setMenu(prev => ({ ...prev, logoSize: Math.max(40, Math.min(300, size)) }));
   }, []);
 
   const updateDayOfWeek = useCallback((day: string) => {
