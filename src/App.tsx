@@ -94,17 +94,7 @@ function MenuEditor() {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="mt-8 pt-4 border-t border-gray-200 text-center">
-          <div className="flex items-center gap-3 justify-center mb-2">
-            <hr className="header-rule-thin flex-1 max-w-[60px]" />
-            <span className="text-gray-300 text-[10px]">✦</span>
-            <hr className="header-rule-thin flex-1 max-w-[60px]" />
-          </div>
-          <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em]">
-            {menu.name}
-          </p>
-        </div>
+
       </div>
 
       {/* Help text */}
