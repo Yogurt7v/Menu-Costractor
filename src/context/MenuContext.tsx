@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { RestaurantMenu, MenuBlock, MenuItem, Promotion } from '../types';
+import { RestaurantMenu, MenuBlock, MenuItem, Promotion, HeaderPromo } from '../types';
 
 const defaultMenu: RestaurantMenu = {
   name: 'РЕСТОРАНЪ',
-  subtitle: 'КУХНЯ И БАР',
-  address: 'ул. Тверская, 15',
-  phone: '+7 (495) 123-45-67',
-  workHours: 'Пн–Пт: 8:00–22:00',
   logo: null,
+  logoSize: 80,
+  headerPromo: {
+    title: 'Бизнес-ланч',
+    price: '450',
+    note: 'суп + горячее + напиток',
+  },
   blocks: [
     {
       id: 'block-1',
@@ -52,21 +54,15 @@ const defaultMenu: RestaurantMenu = {
       ],
     },
   ],
-  promotions: [
-    {
-      id: 'promo-1',
-      title: 'Бизнес-ланч',
-      description: 'Комплексный обед: суп + горячее + напиток',
-      discount: '450 ₽',
-      validUntil: 'Пн–Пт, 12:00–16:00',
-    },
-  ],
+  promotions: [],
 };
 
 interface MenuContextType {
   menu: RestaurantMenu;
-  updateMenuField: (field: keyof RestaurantMenu, value: string | null) => void;
+  updateMenuField: <K extends keyof RestaurantMenu>(field: K, value: RestaurantMenu[K]) => void;
+  updateHeaderPromo: (updates: Partial<HeaderPromo>) => void;
   updateLogo: (logo: string | null) => void;
+  updateLogoSize: (size: number) => void;
   addBlock: () => void;
   removeBlock: (id: string) => void;
   updateBlockTitle: (blockId: string, title: string) => void;
@@ -90,7 +86,7 @@ function generateId() {
 
 export function MenuProvider({ children }: { children: React.ReactNode }) {
   const [menu, setMenu] = useState<RestaurantMenu>(() => {
-    const saved = localStorage.getItem('restaurant-menu-v2');
+    const saved = localStorage.getItem('restaurant-menu-v3');
     if (saved) {
       try {
         return { ...defaultMenu, ...JSON.parse(saved) };
@@ -104,15 +100,23 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   const [isEditMode, setIsEditMode] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('restaurant-menu-v2', JSON.stringify(menu));
+    localStorage.setItem('restaurant-menu-v3', JSON.stringify(menu));
   }, [menu]);
 
-  const updateMenuField = useCallback((field: keyof RestaurantMenu, value: string | null) => {
+  const updateMenuField = useCallback(<K extends keyof RestaurantMenu>(field: K, value: RestaurantMenu[K]) => {
     setMenu(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const updateHeaderPromo = useCallback((updates: Partial<HeaderPromo>) => {
+    setMenu(prev => ({ ...prev, headerPromo: { ...prev.headerPromo, ...updates } }));
   }, []);
 
   const updateLogo = useCallback((logo: string | null) => {
     setMenu(prev => ({ ...prev, logo }));
+  }, []);
+
+  const updateLogoSize = useCallback((size: number) => {
+    setMenu(prev => ({ ...prev, logoSize: Math.max(40, Math.min(160, size)) }));
   }, []);
 
   const addBlock = useCallback(() => {
@@ -199,8 +203,8 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <MenuContext.Provider value={{
-      menu, updateMenuField, updateLogo, addBlock, removeBlock,
-      updateBlockTitle, updateBlockWidth, reorderBlocks,
+      menu, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize,
+      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, reorderBlocks,
       addItem, removeItem, updateItem,
       addPromotion, removePromotion, updatePromotion,
       isEditMode, toggleEditMode,

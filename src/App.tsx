@@ -102,11 +102,8 @@ function MenuEditor() {
             <hr className="header-rule-thin flex-1 max-w-[60px]" />
           </div>
           <p className="text-[10px] text-gray-400 uppercase tracking-[0.15em]">
-            {menu.name} · {menu.address}
+            {menu.name}
           </p>
-          {menu.phone && (
-            <p className="text-[10px] text-gray-400 mt-0.5">{menu.phone}</p>
-          )}
         </div>
       </div>
 

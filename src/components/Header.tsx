@@ -1,9 +1,15 @@
 import React, { useRef } from 'react';
 import { useMenu } from '../context/MenuContext';
 
+const DAYS = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+
 export default function Header() {
-  const { menu, updateMenuField, updateLogo, isEditMode } = useMenu();
+  const { menu, updateHeaderPromo, updateLogo, updateLogoSize, isEditMode } = useMenu();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date();
+  const dayName = DAYS[today.getDay()];
+  const dateStr = today.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -16,35 +22,118 @@ export default function Header() {
   };
 
   return (
-    <div className="text-center mb-6">
-      {/* Logo */}
-      {menu.logo && (
-        <div className="mb-3 flex justify-center relative group">
-          <img
-            src={menu.logo}
-            alt="Логотип"
-            className="h-16 object-contain"
-          />
-          {isEditMode && (
-            <button
-              onClick={() => updateLogo(null)}
-              className="absolute -top-1 -right-1 w-5 h-5 bg-black text-white rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              ✕
-            </button>
+    <div className="mb-4 pb-4 border-b border-black">
+      {/* Main 3-column header */}
+      <div className="flex items-center justify-between gap-4">
+        {/* LEFT: Promotion */}
+        <div className="flex-1 text-left min-w-0">
+          {isEditMode ? (
+            <div className="space-y-0.5">
+              <input
+                type="text"
+                value={menu.headerPromo.title}
+                onChange={(e) => updateHeaderPromo({ title: e.target.value })}
+                className="text-xs uppercase tracking-[0.2em] text-gray-600 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none block w-full"
+                placeholder="Название акции"
+              />
+              <div className="flex items-baseline gap-1">
+                <input
+                  type="text"
+                  value={menu.headerPromo.price}
+                  onChange={(e) => updateHeaderPromo({ price: e.target.value })}
+                  className="text-2xl font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-20"
+                  placeholder="450"
+                  style={{ fontFamily: 'Cormorant Garamond, serif' }}
+                />
+                <span className="text-sm text-gray-600">₽</span>
+              </div>
+              <input
+                type="text"
+                value={menu.headerPromo.note || ''}
+                onChange={(e) => updateHeaderPromo({ note: e.target.value })}
+                className="text-[10px] text-gray-500 italic bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none block w-full"
+                placeholder="суп + горячее + напиток"
+              />
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-gray-600">
+                {menu.headerPromo.title}
+              </p>
+              <p className="text-2xl font-bold mt-0.5" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+                {menu.headerPromo.price} <span className="text-sm font-normal text-gray-600">₽</span>
+              </p>
+              {menu.headerPromo.note && (
+                <p className="text-[10px] text-gray-500 italic mt-0.5">{menu.headerPromo.note}</p>
+              )}
+            </div>
           )}
         </div>
-      )}
 
-      {/* Upload logo button */}
-      {!menu.logo && isEditMode && (
-        <div className="mb-3 flex justify-center">
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="px-3 py-1 border border-dashed border-gray-400 text-gray-500 text-xs hover:border-gray-600 hover:text-gray-700 transition-colors"
-          >
-            + Загрузить логотип
-          </button>
+        {/* CENTER: Logo */}
+        <div className="flex-shrink-0 flex flex-col items-center">
+          {menu.logo ? (
+            <div className="relative group">
+              <img
+                src={menu.logo}
+                alt="Логотип"
+                style={{ height: `${menu.logoSize}px`, maxWidth: '200px' }}
+                className="object-contain"
+              />
+              {isEditMode && (
+                <button
+                  onClick={() => updateLogo(null)}
+                  className="absolute -top-1 -right-1 w-4 h-4 bg-black text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity edit-control"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ) : isEditMode ? (
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="w-20 h-20 border border-dashed border-gray-400 flex flex-col items-center justify-center hover:border-black transition-colors edit-control"
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-[9px] text-gray-400 mt-1">ЛОГО</span>
+            </button>
+          ) : (
+            <div className="w-20 h-20 flex items-center justify-center">
+              <span className="text-xs text-gray-300 uppercase tracking-widest" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+                {menu.name}
+              </span>
+            </div>
+          )}
+
+          {/* Logo size control */}
+          {isEditMode && menu.logo && (
+            <div className="mt-1 flex items-center gap-1 edit-control">
+              <button
+                onClick={() => updateLogoSize(menu.logoSize - 10)}
+                className="w-4 h-4 text-[10px] border border-gray-300 hover:bg-black hover:text-white transition-colors flex items-center justify-center"
+              >
+                −
+              </button>
+              <input
+                type="range"
+                min="40"
+                max="160"
+                value={menu.logoSize}
+                onChange={(e) => updateLogoSize(Number(e.target.value))}
+                className="w-16 h-1 accent-black"
+              />
+              <button
+                onClick={() => updateLogoSize(menu.logoSize + 10)}
+                className="w-4 h-4 text-[10px] border border-gray-300 hover:bg-black hover:text-white transition-colors flex items-center justify-center"
+              >
+                +
+              </button>
+              <span className="text-[9px] text-gray-400 w-8 text-center">{menu.logoSize}px</span>
+            </div>
+          )}
+
           <input
             ref={fileRef}
             type="file"
@@ -53,77 +142,14 @@ export default function Header() {
             onChange={handleLogoUpload}
           />
         </div>
-      )}
 
-      {/* Restaurant name */}
-      {isEditMode ? (
-        <input
-          type="text"
-          value={menu.name}
-          onChange={(e) => updateMenuField('name', e.target.value)}
-          className="text-3xl font-normal tracking-[0.2em] text-center bg-transparent border-b border-gray-300 focus:border-black outline-none w-full max-w-md mx-auto block"
-          placeholder="Название"
-          style={{ fontVariant: 'small-caps' }}
-        />
-      ) : (
-        <h1 className="text-3xl tracking-[0.2em] text-center" style={{ fontVariant: 'small-caps' }}>
-          {menu.name}
-        </h1>
-      )}
-
-      {/* Subtitle */}
-      {isEditMode ? (
-        <input
-          type="text"
-          value={menu.subtitle}
-          onChange={(e) => updateMenuField('subtitle', e.target.value)}
-          className="text-xs tracking-[0.3em] text-center text-gray-500 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-full max-w-xs mx-auto block mt-1 uppercase"
-          placeholder="Подзаголовок"
-        />
-      ) : (
-        <p className="text-xs tracking-[0.3em] text-gray-500 text-center mt-1 uppercase">{menu.subtitle}</p>
-      )}
-
-      {/* Decorative line */}
-      <div className="flex items-center gap-3 mt-4 justify-center">
-        <hr className="header-rule flex-1 max-w-[80px]" />
-        <span className="text-gray-400 text-xs">✦</span>
-        <hr className="header-rule flex-1 max-w-[80px]" />
-      </div>
-
-      {/* Contact info */}
-      <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500 flex-wrap">
-        {isEditMode ? (
-          <>
-            <input
-              type="text"
-              value={menu.address}
-              onChange={(e) => updateMenuField('address', e.target.value)}
-              className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none text-center w-40"
-              placeholder="Адрес"
-            />
-            <input
-              type="text"
-              value={menu.phone}
-              onChange={(e) => updateMenuField('phone', e.target.value)}
-              className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none text-center w-36"
-              placeholder="Телефон"
-            />
-            <input
-              type="text"
-              value={menu.workHours}
-              onChange={(e) => updateMenuField('workHours', e.target.value)}
-              className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none text-center w-40"
-              placeholder="Часы работы"
-            />
-          </>
-        ) : (
-          <>
-            {menu.address && <span>{menu.address}</span>}
-            {menu.phone && <span>· {menu.phone}</span>}
-            {menu.workHours && <span>· {menu.workHours}</span>}
-          </>
-        )}
+        {/* RIGHT: Day of week */}
+        <div className="flex-1 text-right min-w-0">
+          <p className="text-xs uppercase tracking-[0.2em] text-gray-600">{dateStr}</p>
+          <p className="text-2xl font-bold mt-0.5" style={{ fontFamily: 'Cormorant Garamond, serif' }}>
+            {dayName}
+          </p>
+        </div>
       </div>
     </div>
   );

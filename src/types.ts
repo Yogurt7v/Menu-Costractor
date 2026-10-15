@@ -21,13 +21,17 @@ export interface Promotion {
   validUntil?: string;
 }
 
+export interface HeaderPromo {
+  title: string;
+  price: string;
+  note?: string;
+}
+
 export interface RestaurantMenu {
   name: string;
-  subtitle: string;
-  address: string;
-  phone: string;
-  workHours: string;
   logo: string | null;
+  logoSize: number; // px
+  headerPromo: HeaderPromo;
   blocks: MenuBlock[];
   promotions: Promotion[];
 }
