@@ -82,6 +82,7 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
                 />
               ) : (
                 <span
+                  className="font-medium text-black"
                   style={{
                     fontSize: `${priceStyle.fontSize}px`,
                     fontFamily: priceStyle.fontFamily,
@@ -91,7 +92,7 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
                   {item.price}
                 </span>
               )}
-              <span className="text-gray-500" style={{ fontSize: `${Math.max(10, priceStyle.fontSize - 2)}px` }}>₽</span>
+              <span className="text-gray-600" style={{ fontSize: `${Math.max(10, priceStyle.fontSize - 2)}px` }}>₽</span>
             </div>
           </>
         )}
