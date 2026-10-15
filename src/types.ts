@@ -42,6 +42,7 @@ export interface Promotion {
   description: string;
   discount?: string;
   validUntil?: string;
+  price?: string;
 }
 
 export interface HeaderPromo {

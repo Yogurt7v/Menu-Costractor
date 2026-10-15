@@ -145,7 +145,7 @@ export default function MenuBlockCard({ block }: Props) {
       {/* Block content */}
       <div className="pt-5">
         {/* Section title with checkbox and price */}
-        <div className="mb-3 flex items-center gap-2 overflow-hidden">
+        <div className="mb-3 flex items-center gap-2">
           {/* Fixed price checkbox */}
           {isEditMode && (
             <label className="flex items-center gap-1 edit-control cursor-pointer flex-shrink-0" title="Одна цена за весь блок">
