@@ -74,17 +74,22 @@ export default function PromotionCard({ promotion }: Props) {
         {(promotion.price || isEditMode) && (
           <div className="flex items-baseline gap-0.5 flex-shrink-0 ml-auto">
             {isEditMode ? (
-              <input
-                type="text"
-                value={promotion.price || ''}
-                onChange={(e) => updatePromotion(promotion.id, { price: e.target.value })}
-                className="text-lg font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-16 text-right"
-                placeholder="Цена"
-              />
-            ) : (
-              <span className="text-lg font-bold whitespace-nowrap">{promotion.price}</span>
-            )}
-            <span className="text-sm text-gray-600">₽</span>
+              <>
+                <input
+                  type="text"
+                  value={promotion.price || ''}
+                  onChange={(e) => updatePromotion(promotion.id, { price: e.target.value })}
+                  className="text-lg font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-16 text-right"
+                  placeholder="Цена"
+                />
+                <span className="text-sm text-gray-600">₽</span>
+              </>
+            ) : promotion.price ? (
+              <>
+                <span className="text-lg font-bold whitespace-nowrap">{promotion.price}</span>
+                <span className="text-sm text-gray-600">₽</span>
+              </>
+            ) : null}
           </div>
         )}
       </div>
