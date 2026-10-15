@@ -91,7 +91,7 @@ export default function MenuBlockCard({ block }: Props) {
       {isEditMode && (
         <div
           onMouseDown={handleResizeStart}
-          className="absolute top-1 right-1 cursor-col-resize p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
+          className="absolute top-2 right-10 cursor-col-resize p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
           title="Потяните для изменения ширины"
         >
           <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
@@ -105,7 +105,7 @@ export default function MenuBlockCard({ block }: Props) {
       {isEditMode && (
         <button
           onClick={() => removeBlock(block.id)}
-          className="absolute top-1 right-6 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity edit-control"
+          className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700 transition-colors edit-control shadow-sm"
           title="Удалить раздел"
         >
           ✕
