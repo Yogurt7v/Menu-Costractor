@@ -28,6 +28,7 @@ export default function MenuBlockCard({ block }: Props) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    gridColumn: `span ${block.width}`,
   };
 
   const handleResizeStart = (e: React.MouseEvent) => {
@@ -65,8 +66,8 @@ export default function MenuBlockCard({ block }: Props) {
         setNodeRef(node);
         blockRef.current = node;
       }}
-      style={{ ...style, width: `${(block.width / 12) * 100}%` }}
-      className={`relative transition-all duration-200 mx-auto ${
+      style={style}
+      className={`relative transition-all duration-200 ${
         isDragging ? 'opacity-40 z-50' : ''
       } ${isResizing ? 'ring-1 ring-black' : ''} ${
         isEditMode ? 'editable-block p-2' : ''
@@ -114,17 +115,17 @@ export default function MenuBlockCard({ block }: Props) {
       {/* Block content */}
       <div className="pt-5">
         {/* Section title with checkbox and price */}
-        <div className="mb-3 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2 overflow-hidden">
           {/* Fixed price checkbox */}
           {isEditMode && (
-            <label className="flex items-center gap-1 edit-control cursor-pointer" title="Одна цена за весь блок">
+            <label className="flex items-center gap-1 edit-control cursor-pointer flex-shrink-0" title="Одна цена за весь блок">
               <input
                 type="checkbox"
                 checked={block.fixedPrice}
                 onChange={(e) => updateBlockFixedPrice(block.id, e.target.checked)}
                 className="w-3 h-3 accent-black cursor-pointer"
               />
-              <span className="text-[9px] text-gray-500 uppercase tracking-wider">Фикс. цена</span>
+              <span className="text-[9px] text-gray-500 uppercase tracking-wider whitespace-nowrap">Фикс. цена</span>
             </label>
           )}
 
@@ -134,16 +135,16 @@ export default function MenuBlockCard({ block }: Props) {
               type="text"
               value={block.title}
               onChange={(e) => updateBlockTitle(block.id, e.target.value)}
-              className="section-title text-base text-black bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1"
+              className="section-title text-base text-black bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-1 min-w-0 truncate"
               placeholder="Название раздела"
             />
           ) : (
-            <h2 className="section-title text-base text-black flex-1">{block.title}</h2>
+            <h2 className="section-title text-base text-black flex-1 min-w-0 truncate">{block.title}</h2>
           )}
 
           {/* Block price (if fixedPrice is true) */}
           {block.fixedPrice && (
-            <div className="flex items-baseline gap-0.5 flex-shrink-0">
+            <div className="flex items-baseline gap-0.5 flex-shrink-0 ml-auto">
               {isEditMode ? (
                 <input
                   type="text"
@@ -153,7 +154,7 @@ export default function MenuBlockCard({ block }: Props) {
                   placeholder="450"
                 />
               ) : (
-                <span className="text-sm font-bold">{block.blockPrice}</span>
+                <span className="text-sm font-bold whitespace-nowrap">{block.blockPrice}</span>
               )}
               <span className="text-xs text-gray-600">₽</span>
             </div>

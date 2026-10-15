@@ -90,6 +90,42 @@ function MenuEditor() {
     }
   };
 
+  // Group consecutive blocks together for grid layout
+  const renderItems = () => {
+    const elements: React.ReactNode[] = [];
+    let currentBlockGroup: ListItem[] = [];
+    let groupKey = 0;
+
+    const flushBlockGroup = () => {
+      if (currentBlockGroup.length > 0) {
+        elements.push(
+          <div key={`grid-${groupKey++}`} className="grid grid-cols-12 gap-4">
+            {currentBlockGroup.map(item => {
+              const block = menu.blocks.find(b => b.id === item.id);
+              return block ? <MenuBlockCard key={item.id} block={block} /> : null;
+            })}
+          </div>
+        );
+        currentBlockGroup = [];
+      }
+    };
+
+    itemOrder.forEach((item) => {
+      if (item.type === 'block') {
+        currentBlockGroup.push(item);
+      } else {
+        flushBlockGroup();
+        const promotion = menu.promotions.find(p => p.id === item.id);
+        if (promotion) {
+          elements.push(<DraggablePromotion key={item.id} promotion={promotion} />);
+        }
+      }
+    });
+
+    flushBlockGroup();
+    return elements;
+  };
+
   return (
     <div className="min-h-screen bg-[#e8e4df]">
       <Toolbar />
@@ -110,15 +146,7 @@ function MenuEditor() {
             strategy={verticalListSortingStrategy}
           >
             <div className="space-y-2">
-              {itemOrder.map((item) => {
-                if (item.type === 'block') {
-                  const block = menu.blocks.find(b => b.id === item.id);
-                  return block ? <MenuBlockCard key={item.id} block={block} /> : null;
-                } else {
-                  const promotion = menu.promotions.find(p => p.id === item.id);
-                  return promotion ? <DraggablePromotion key={item.id} promotion={promotion} /> : null;
-                }
-              })}
+              {renderItems()}
             </div>
           </SortableContext>
         </DndContext>
@@ -135,7 +163,7 @@ function MenuEditor() {
       {/* Help text */}
       <div className="no-print max-w-[210mm] mx-auto px-4 py-3 text-center">
         <p className="text-[10px] text-gray-400 uppercase tracking-wider">
-          Перетаскивайте блоки и акции за иконку ≡ · Изменяйте ширину кнопок или перетаскиванием · Данные сохраняются автоматически
+          Перетаскивайте блоки и акции за иконку ≡ · Изменяйте ширину блоков кнопками или перетаскиванием · Данные сохраняются автоматически
         </p>
       </div>
     </div>
