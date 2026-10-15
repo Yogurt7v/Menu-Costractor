@@ -74,8 +74,11 @@ const defaultMenu: RestaurantMenu = {
   ],
 };
 
+import { SavedConfiguration } from '../types';
+
 interface MenuContextType {
   menu: RestaurantMenu;
+  savedConfigs: SavedConfiguration[];
   updateMenuField: <K extends keyof RestaurantMenu>(field: K, value: RestaurantMenu[K]) => void;
   updateHeaderPromo: (updates: Partial<HeaderPromo>) => void;
   updateLogo: (logo: string | null) => void;
@@ -89,6 +92,7 @@ interface MenuContextType {
   updateBlockPrice: (blockId: string, price: string) => void;
   updateBlockTitleStyle: (blockId: string, style: TextStyle) => void;
   updateBlockBorder: (blockId: string, updates: { borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double'; borderWidth?: number; borderColor?: string }) => void;
+  updateBlockShowTotalWeight: (blockId: string, show: boolean) => void;
   reorderBlocks: (blocks: MenuBlock[]) => void;
   addItem: (blockId: string) => void;
   removeItem: (blockId: string, itemId: string) => void;
@@ -99,6 +103,9 @@ interface MenuContextType {
   addPromotion: () => void;
   removePromotion: (id: string) => void;
   updatePromotion: (id: string, updates: Partial<Promotion>) => void;
+  saveConfiguration: (name: string) => void;
+  loadConfiguration: (id: string) => void;
+  deleteConfiguration: (id: string) => void;
   isEditMode: boolean;
   toggleEditMode: () => void;
 }
@@ -122,11 +129,27 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     return defaultMenu;
   });
 
+  const [savedConfigs, setSavedConfigs] = useState<SavedConfiguration[]>(() => {
+    const saved = localStorage.getItem('restaurant-menu-history');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
+
   const [isEditMode, setIsEditMode] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('restaurant-menu-v3', JSON.stringify(menu));
   }, [menu]);
+
+  useEffect(() => {
+    localStorage.setItem('restaurant-menu-history', JSON.stringify(savedConfigs));
+  }, [savedConfigs]);
 
   const updateMenuField = useCallback(<K extends keyof RestaurantMenu>(field: K, value: RestaurantMenu[K]) => {
     setMenu(prev => ({ ...prev, [field]: value }));
@@ -198,6 +221,13 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     setMenu(prev => ({
       ...prev,
       blocks: prev.blocks.map(b => b.id === blockId ? { ...b, ...updates } : b),
+    }));
+  }, []);
+
+  const updateBlockShowTotalWeight = useCallback((blockId: string, show: boolean) => {
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, showTotalWeight: show } : b),
     }));
   }, []);
 
@@ -287,17 +317,39 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const saveConfiguration = useCallback((name: string) => {
+    const newConfig: SavedConfiguration = {
+      id: 'config-' + Date.now(),
+      name,
+      timestamp: Date.now(),
+      menu: { ...menu },
+    };
+    setSavedConfigs(prev => [newConfig, ...prev]);
+  }, [menu]);
+
+  const loadConfiguration = useCallback((id: string) => {
+    const config = savedConfigs.find(c => c.id === id);
+    if (config) {
+      setMenu(config.menu);
+    }
+  }, [savedConfigs]);
+
+  const deleteConfiguration = useCallback((id: string) => {
+    setSavedConfigs(prev => prev.filter(c => c.id !== id));
+  }, []);
+
   const toggleEditMode = useCallback(() => {
     setIsEditMode(prev => !prev);
   }, []);
 
   return (
     <MenuContext.Provider value={{
-      menu, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
+      menu, savedConfigs, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
       addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
-      updateBlockTitleStyle, updateBlockBorder, reorderBlocks,
+      updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, reorderBlocks,
       addItem, removeItem, updateItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle,
       addPromotion, removePromotion, updatePromotion,
+      saveConfiguration, loadConfiguration, deleteConfiguration,
       isEditMode, toggleEditMode,
     }}>
       {children}

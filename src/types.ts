@@ -26,6 +26,14 @@ export interface MenuBlock {
   borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
   borderWidth?: number;
   borderColor?: string;
+  showTotalWeight?: boolean; // показывать общий вес
+}
+
+export interface SavedConfiguration {
+  id: string;
+  name: string;
+  timestamp: number;
+  menu: RestaurantMenu;
 }
 
 export interface Promotion {

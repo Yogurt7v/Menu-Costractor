@@ -16,7 +16,8 @@ const DEFAULT_TITLE_STYLE: TextStyle = { fontSize: 16, fontFamily: 'Cormorant Ga
 export default function MenuBlockCard({ block }: Props) {
   const {
     updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
-    removeBlock, addItem, isEditMode, updateBlockTitleStyle, updateBlockBorder
+    removeBlock, addItem, isEditMode, updateBlockTitleStyle, updateBlockBorder,
+    updateBlockShowTotalWeight
   } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
   const [showStyleControls, setShowStyleControls] = useState(false);
@@ -38,6 +39,12 @@ export default function MenuBlockCard({ block }: Props) {
   const borderStyle = block.borderStyle || 'none';
   const borderWidth = block.borderWidth || 1;
   const borderColor = block.borderColor || '#000000';
+
+  // Подсчёт общего веса
+  const totalWeight = block.items.reduce((sum, item) => {
+    const weight = parseInt(item.weight || '0', 10);
+    return sum + (isNaN(weight) ? 0 : weight);
+  }, 0);
 
   const borderCss = borderStyle !== 'none'
     ? {
@@ -183,6 +190,21 @@ export default function MenuBlockCard({ block }: Props) {
             </h2>
           )}
 
+          {/* Total weight (if showTotalWeight is true) */}
+          {block.showTotalWeight && totalWeight > 0 && (
+            <div className="flex items-baseline gap-0.5 flex-shrink-0">
+              <span
+                className="whitespace-nowrap text-gray-500"
+                style={{
+                  fontSize: `${Math.max(10, titleStyle.fontSize - 4)}px`,
+                  fontFamily: titleStyle.fontFamily,
+                }}
+              >
+                {totalWeight}г
+              </span>
+            </div>
+          )}
+
           {/* Block price (if fixedPrice is true) */}
           {block.fixedPrice && (
             <div className="flex items-baseline gap-0.5 flex-shrink-0 ml-auto">
@@ -206,10 +228,9 @@ export default function MenuBlockCard({ block }: Props) {
                     fontFamily: titleStyle.fontFamily,
                   }}
                 >
-                  {block.blockPrice}
+                  {block.blockPrice} ₽
                 </span>
               )}
-              <span className="text-xs text-gray-600">₽</span>
             </div>
           )}
         </div>
@@ -260,6 +281,15 @@ export default function MenuBlockCard({ block }: Props) {
                     onBorderWidthChange={(borderWidth) => updateBlockBorder(block.id, { borderWidth })}
                     onBorderColorChange={(borderColor) => updateBlockBorder(block.id, { borderColor })}
                   />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={block.showTotalWeight || false}
+                    onChange={(e) => updateBlockShowTotalWeight(block.id, e.target.checked)}
+                    className="w-3 h-3 accent-black cursor-pointer"
+                  />
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">Показывать общий вес ({totalWeight}г)</span>
                 </div>
               </div>
             )}
