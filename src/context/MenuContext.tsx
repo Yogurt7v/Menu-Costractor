@@ -134,7 +134,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
               fixedPrice,
               blockPrice,
               showTotalWeight: block.showTotalWeight ?? false,
-              syncStyles: block.syncStyles ?? false,
+              syncStyles: block.syncStyles ?? true,
             };
           });
         }
@@ -191,7 +191,7 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   const addBlock = useCallback(() => {
     setMenu(prev => ({
       ...prev,
-      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, fixedPrice: false, blockPrice: '', showTotalWeight: false, syncStyles: false, items: [] }],
+      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, fixedPrice: false, blockPrice: '', showTotalWeight: false, syncStyles: true, items: [] }],
     }));
   }, []);
 
