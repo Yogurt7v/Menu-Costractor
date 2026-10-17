@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -14,60 +14,23 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { MenuProvider, useMenu } from './context/MenuContext';
-import { HeaderItemKind } from './types';
+import { MenuProvider, useMenu, WIDTH_FIELD } from './context/MenuContext';
+import { HeaderItemKind, LayoutItem } from './types';
 import Toolbar from './components/Toolbar';
 import MenuBlockCard from './components/MenuBlockCard';
+import PageOverflowWarning from './components/PageOverflowWarning';
 import DraggablePromotion from './components/DraggablePromotion';
 import HeaderItemCard, { HEADER_ITEM_IDS } from './components/HeaderItemCard';
-
-interface ListItem {
-  id: string;
-  type: 'block' | 'promotion';
-}
 
 const DEFAULT_HEADER_ORDER: HeaderItemKind[] = ['headerPromo', 'logo', 'dayOfWeek'];
 
 function MenuEditor() {
-  const { menu, reorderBlocks } = useMenu();
+  const { menu, reorderLayout } = useMenu();
 
   const [headerOrder, setHeaderOrder] = useState<HeaderItemKind[]>(DEFAULT_HEADER_ORDER);
 
-  const [itemOrder, setItemOrder] = useState<ListItem[]>(() => {
-    const items: ListItem[] = [];
-    menu.promotions.forEach(p => items.push({ id: p.id, type: 'promotion' }));
-    menu.blocks.forEach(b => items.push({ id: b.id, type: 'block' }));
-    return items;
-  });
-
-  // Sync itemOrder with menu changes
-  useEffect(() => {
-    setItemOrder(current => {
-      const blockIds = new Set(menu.blocks.map(b => b.id));
-      const promoIds = new Set(menu.promotions.map(p => p.id));
-
-      // Keep existing order, but remove deleted items
-      const filtered = current.filter(item =>
-        (item.type === 'block' && blockIds.has(item.id)) ||
-        (item.type === 'promotion' && promoIds.has(item.id))
-      );
-
-      // Add new items that aren't in the order yet
-      const existingIds = new Set(filtered.map(i => i.id));
-      menu.blocks.forEach(b => {
-        if (!existingIds.has(b.id)) {
-          filtered.push({ id: b.id, type: 'block' });
-        }
-      });
-      menu.promotions.forEach(p => {
-        if (!existingIds.has(p.id)) {
-          filtered.push({ id: p.id, type: 'promotion' });
-        }
-      });
-
-      return filtered;
-    });
-  }, [menu.blocks, menu.promotions]);
+  // Порядок блоков и акций вперемешку приходит из контекста и сохраняется в меню
+  const order: LayoutItem[] = menu.layout;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -86,6 +49,16 @@ function MenuEditor() {
   };
   const visibleHeaderItems = headerOrder.filter(kind => headerVisible[kind]);
 
+  const suggestedStarts = (() => {
+    const acc: Record<HeaderItemKind, number> = { headerPromo: 1, logo: 1, dayOfWeek: 1 };
+    let autoFlowColumn = 1;
+    visibleHeaderItems.forEach((kind) => {
+      acc[kind] = autoFlowColumn;
+      autoFlowColumn += menu[WIDTH_FIELD[kind]];
+    });
+    return acc;
+  })();
+
   const handleHeaderDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -103,59 +76,37 @@ function MenuEditor() {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
-      const oldIndex = itemOrder.findIndex((item) => item.id === active.id);
-      const newIndex = itemOrder.findIndex((item) => item.id === over.id);
-      const newOrder = arrayMove(itemOrder, oldIndex, newIndex);
-      setItemOrder(newOrder);
-
-      // Update blocks order in context
-      const blocksOrder = newOrder
-        .filter(item => item.type === 'block')
-        .map(item => menu.blocks.find(b => b.id === item.id))
-        .filter((b): b is NonNullable<typeof b> => b !== undefined);
-      reorderBlocks(blocksOrder);
+      const oldIndex = order.findIndex((item) => item.id === active.id);
+      const newIndex = order.findIndex((item) => item.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+      reorderLayout(arrayMove(order, oldIndex, newIndex));
     }
   };
 
-  // Group consecutive blocks together for grid layout
-  const renderItems = () => {
-    const elements: React.ReactNode[] = [];
-    let currentBlockGroup: ListItem[] = [];
-    let groupKey = 0;
-
-    const flushBlockGroup = () => {
-      if (currentBlockGroup.length > 0) {
-        elements.push(
-          <div key={`grid-${groupKey++}`} className="grid grid-cols-12 gap-4">
-            {currentBlockGroup.map(item => {
-              const block = menu.blocks.find(b => b.id === item.id);
-              return block ? <MenuBlockCard key={item.id} block={block} /> : null;
-            })}
-          </div>
-        );
-        currentBlockGroup = [];
-      }
-    };
-
-    itemOrder.forEach((item) => {
-      if (item.type === 'block') {
-        currentBlockGroup.push(item);
-      } else {
-        flushBlockGroup();
-        const promotion = menu.promotions.find(p => p.id === item.id);
-        if (promotion) {
-          elements.push(<DraggablePromotion key={item.id} promotion={promotion} />);
+  // Блоки и акции лежат в одной сетке из 12 колонок: ширину каждого задаёт gridColumn
+  // элемента, поэтому акция уже не разрывает ряд, а встаёт в него бок о бок с блоком.
+  const renderItems = () => (
+    <div className="grid grid-cols-12 gap-4">
+      {order.map((item) => {
+        if (item.type === 'block') {
+          const block = menu.blocks.find(b => b.id === item.id);
+          return block ? <MenuBlockCard key={item.id} block={block} /> : null;
         }
-      }
-    });
-
-    flushBlockGroup();
-    return elements;
-  };
+        const promotion = menu.promotions.find(p => p.id === item.id);
+        return promotion ? <DraggablePromotion key={item.id} promotion={promotion} /> : null;
+      })}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#e8e4df]">
-      <Toolbar />
+      {/* Тулбар и предупреждение липнут вместе. Само уведомление sticky не получает:
+          высота тулбара меняется при переносе кнопок, и жёсткий top-offset уводил бы
+          его то под тулбар, то поверх. Обёртка избавляет от магических чисел. */}
+      <div className="sticky top-0 z-40 bg-white">
+        <Toolbar />
+        <PageOverflowWarning />
+      </div>
 
       {/* A4 Page */}
       <div className="a4-page edit-mode">
@@ -172,7 +123,7 @@ function MenuEditor() {
             >
               <div className="grid grid-cols-12 gap-4">
                 {visibleHeaderItems.map(kind => (
-                  <HeaderItemCard key={kind} kind={kind} />
+                  <HeaderItemCard key={kind} kind={kind} suggestedStart={suggestedStarts[kind]} />
                 ))}
               </div>
             </SortableContext>
@@ -191,12 +142,10 @@ function MenuEditor() {
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={itemOrder.map(item => item.id)}
+            items={order.map(item => item.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
-              {renderItems()}
-            </div>
+            {renderItems()}
           </SortableContext>
         </DndContext>
 

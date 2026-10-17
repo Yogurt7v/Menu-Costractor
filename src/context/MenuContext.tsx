@@ -1,16 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { RestaurantMenu, MenuBlock, MenuItem, Promotion, HeaderPromo, TextStyle, HeaderItemKind, SectionStyle } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { RestaurantMenu, LayoutItem, MenuBlock, MenuItem, Promotion, HeaderPromo, TextStyle, HeaderItemKind, SectionStyle } from '../types';
 
 const defaultMenu: RestaurantMenu = {
   name: 'РЕСТОРАНЪ',
   logo: null,
   logoSize: 80,
   logoWidth: 4,
+  logoStartColumn: null,
   showLogo: true,
   dayOfWeek: 'Понедельник',
   dayWidth: 4,
+  dayStartColumn: null,
   showDay: true,
   headerPromoWidth: 4,
+  headerPromoStartColumn: null,
   showHeaderPromo: true,
   headerPromo: {
     title: 'Бизнес-ланч',
@@ -76,7 +79,17 @@ const defaultMenu: RestaurantMenu = {
       description: 'Комплексный обед: суп + горячее + напиток',
       discount: '450 ₽',
       validUntil: 'Пн–Пт, 12:00–16:00',
+      width: 12,
+      minHeight: 0,
     },
+  ],
+  // Акции сверху, блоки ниже — так выглядит меню у пользователей, созданных до поля layout
+  layout: [
+    { id: 'promo-1', type: 'promotion' },
+    { id: 'block-1', type: 'block' },
+    { id: 'block-2', type: 'block' },
+    { id: 'block-3', type: 'block' },
+    { id: 'block-4', type: 'block' },
   ],
 };
 
@@ -93,17 +106,20 @@ interface MenuContextType {
   addHeaderItem: (kind: HeaderItemKind) => void;
   removeHeaderItem: (kind: HeaderItemKind) => void;
   updateHeaderSectionStyle: (kind: 'headerPromo' | 'dayOfWeek', updates: Partial<SectionStyle>) => void;
+  updateHeaderStartColumn: (kind: HeaderItemKind, start: number | null) => void;
+  updateHeaderMinHeight: (kind: HeaderItemKind, minHeight: number) => void;
   addBlock: () => void;
   removeBlock: (id: string) => void;
   updateBlockTitle: (blockId: string, title: string) => void;
   updateBlockWidth: (blockId: string, width: number) => void;
+  updateBlockMinHeight: (blockId: string, minHeight: number) => void;
   updateBlockFixedPrice: (blockId: string, fixedPrice: boolean) => void;
   updateBlockPrice: (blockId: string, price: string) => void;
   updateBlockTitleStyle: (blockId: string, style: TextStyle) => void;
   updateBlockBorder: (blockId: string, updates: { borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double'; borderWidth?: number; borderColor?: string }) => void;
   updateBlockShowTotalWeight: (blockId: string, show: boolean) => void;
   updateBlockSyncStyles: (blockId: string, sync: boolean) => void;
-  reorderBlocks: (blocks: MenuBlock[]) => void;
+  reorderLayout: (items: LayoutItem[]) => void;
   addItem: (blockId: string) => void;
   removeItem: (blockId: string, itemId: string) => void;
   updateItem: (blockId: string, itemId: string, updates: Partial<MenuItem>) => void;
@@ -113,6 +129,8 @@ interface MenuContextType {
   addPromotion: () => void;
   removePromotion: (id: string) => void;
   updatePromotion: (id: string, updates: Partial<Promotion>) => void;
+  updatePromotionWidth: (id: string, width: number) => void;
+  updatePromotionMinHeight: (id: string, minHeight: number) => void;
   saveConfiguration: (name: string) => void;
   loadConfiguration: (id: string) => void;
   deleteConfiguration: (id: string) => void;
@@ -134,28 +152,84 @@ function clampWidth(value: any, fallback: number): number {
   return Math.max(3, Math.min(12, n));
 }
 
+// Ширина блока и акции: минимум 1, в отличие от шапки, где минимум 3.
+function clampGridWidth(value: any, fallback: number): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(1, Math.min(12, n));
+}
+
+// 0 = авто; верхняя граница 297 мм — высота листа A4
+function clampMinHeight(value: any): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(297, n));
+}
+
 const HEADER_FLAG: Record<HeaderItemKind, 'showLogo' | 'showHeaderPromo' | 'showDay'> = {
   logo: 'showLogo',
   headerPromo: 'showHeaderPromo',
   dayOfWeek: 'showDay',
 };
 
+// Карта живёт здесь, а не в HeaderItemCard: карточка импортирует контекст, поэтому
+// обратный импорт дал бы цикл. Рядом HEADER_FLAG — та же логика поля по виду секции.
+export const WIDTH_FIELD: Record<HeaderItemKind, 'headerPromoWidth' | 'logoWidth' | 'dayWidth'> = {
+  headerPromo: 'headerPromoWidth',
+  logo: 'logoWidth',
+  dayOfWeek: 'dayWidth',
+};
+
+export const START_FIELD: Record<HeaderItemKind, 'logoStartColumn' | 'headerPromoStartColumn' | 'dayStartColumn'> = {
+  logo: 'logoStartColumn',
+  headerPromo: 'headerPromoStartColumn',
+  dayOfWeek: 'dayStartColumn',
+};
+
+export const MIN_HEIGHT_FIELD: Record<HeaderItemKind, 'headerPromoMinHeight' | 'logoMinHeight' | 'dayMinHeight'> = {
+  headerPromo: 'headerPromoMinHeight',
+  logo: 'logoMinHeight',
+  dayOfWeek: 'dayMinHeight',
+};
+
+// Самая правая колонка, на которой секция ширины width ещё помещается в сетку из 12.
+export function maxStartColumn(width: number): number {
+  return Math.max(1, 13 - width);
+}
+
+// null = авто-раскладка. Число прижимается к [1, maxStartColumn(width)], иначе сужение
+// ширины оставило бы закрепление за пределами сетки и CSS Grid тихо сбросил бы раскладку.
+function normalizeStartColumn(value: any, width: number): number | null {
+  if (value === null || value === undefined) return null;
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return null;
+  return Math.max(1, Math.min(maxStartColumn(width), n));
+}
+
 function normalizeMenu(parsed: any): RestaurantMenu {
   const menu = { ...defaultMenu, ...parsed };
   menu.headerPromoWidth = clampWidth(menu.headerPromoWidth, defaultMenu.headerPromoWidth);
   menu.logoWidth = clampWidth(menu.logoWidth, defaultMenu.logoWidth);
   menu.dayWidth = clampWidth(menu.dayWidth, defaultMenu.dayWidth);
+  menu.logoStartColumn = normalizeStartColumn(menu.logoStartColumn, menu.logoWidth);
+  menu.headerPromoStartColumn = normalizeStartColumn(menu.headerPromoStartColumn, menu.headerPromoWidth);
+  menu.dayStartColumn = normalizeStartColumn(menu.dayStartColumn, menu.dayWidth);
+  (Object.keys(MIN_HEIGHT_FIELD) as HeaderItemKind[]).forEach((kind) => {
+    const field = MIN_HEIGHT_FIELD[kind];
+    menu[field] = clampMinHeight(menu[field]);
+  });
   menu.showLogo = menu.showLogo === false ? false : true;
   menu.showHeaderPromo = menu.showHeaderPromo === false ? false : true;
   menu.showDay = menu.showDay === false ? false : true;
   if (Array.isArray(menu.blocks)) {
     menu.blocks = menu.blocks.map((block: any) => {
       const blockPrice = block.blockPrice ?? '';
-      const fixedPrice = (block.fixedPrice && blockPrice) ? true : false;
+      const fixedPrice = block.fixedPrice === true;
       return {
         ...block,
         fixedPrice,
         blockPrice,
+        minHeight: block.minHeight ?? 0,
         showTotalWeight: block.showTotalWeight ?? false,
         syncStyles: block.syncStyles ?? true,
         items: Array.isArray(block.items) ? block.items : [],
@@ -164,8 +238,43 @@ function normalizeMenu(parsed: any): RestaurantMenu {
   } else {
     menu.blocks = defaultMenu.blocks;
   }
-  menu.promotions = Array.isArray(menu.promotions) ? menu.promotions : [];
+  // Акции без width из старых данных занимают всю ширину — как и раньше.
+  menu.promotions = (Array.isArray(menu.promotions) ? menu.promotions : []).map((promo: any) => ({
+    ...promo,
+    width: clampGridWidth(promo.width, 12),
+    minHeight: clampMinHeight(promo.minHeight),
+  }));
+  menu.layout = normalizeLayout(parsed?.layout, menu.blocks, menu.promotions);
   return menu;
+}
+
+// Приводит layout к валидному виду: выкидывает удалённые блоки/акции и неверный type,
+// сохраняет взаимный порядок выживших, дописывает в конец новые блоки, затем новые акции.
+// Без layout (старые данные) порядок прежний: сначала акции, затем блоки.
+function normalizeLayout(raw: any, blocks: MenuBlock[], promotions: Promotion[]): LayoutItem[] {
+  const kind: Record<string, 'block' | 'promotion'> = {};
+  blocks.forEach((b) => { kind[b.id] = 'block'; });
+  promotions.forEach((p) => { kind[p.id] = 'promotion'; });
+
+  const result: LayoutItem[] = [];
+  const seen = new Set<string>();
+  const push = (id: string, type: 'block' | 'promotion') => {
+    if (seen.has(id)) return;
+    seen.add(id);
+    result.push({ id, type });
+  };
+
+  if (Array.isArray(raw)) {
+    raw.forEach((entry: any) => {
+      if (entry && kind[entry.id] === entry.type) push(entry.id, entry.type);
+    });
+    blocks.forEach((b) => push(b.id, 'block'));
+    promotions.forEach((p) => push(p.id, 'promotion'));
+  } else {
+    promotions.forEach((p) => push(p.id, 'promotion'));
+    blocks.forEach((b) => push(b.id, 'block'));
+  }
+  return result;
 }
 
 export function MenuProvider({ children }: { children: React.ReactNode }) {
@@ -195,12 +304,31 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
 
   const [isEditMode, setIsEditMode] = useState(true);
 
+  // Эффекты сохранения перезапускаются на каждом изменении состояния, поэтому
+  // предупреждение о переполнении квоты показываем один раз за сессию на каждый слот.
+  const menuStorageWarned = useRef(false);
+  const historyStorageWarned = useRef(false);
+
   useEffect(() => {
-    localStorage.setItem('restaurant-menu-v3', JSON.stringify(menu));
+    try {
+      localStorage.setItem('restaurant-menu-v3', JSON.stringify(menu));
+    } catch {
+      if (!menuStorageWarned.current) {
+        menuStorageWarned.current = true;
+        alert('Не удалось сохранить меню: хранилище браузера переполнено. Чаще всего причина — слишком большой логотип: уменьшите его размер или удалите логотип, затем попробуйте снова.');
+      }
+    }
   }, [menu]);
 
   useEffect(() => {
-    localStorage.setItem('restaurant-menu-history', JSON.stringify(savedConfigs));
+    try {
+      localStorage.setItem('restaurant-menu-history', JSON.stringify(savedConfigs));
+    } catch {
+      if (!historyStorageWarned.current) {
+        historyStorageWarned.current = true;
+        alert('Не удалось сохранить список сохранённых конфигураций: хранилище браузера переполнено. Чаще всего причина — слишком большой логотип в меню: уменьшите его размер или удалите логотип, затем попробуйте снова.');
+      }
+    }
   }, [savedConfigs]);
 
   const updateMenuField = useCallback(<K extends keyof RestaurantMenu>(field: K, value: RestaurantMenu[K]) => {
@@ -239,15 +367,37 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const addBlock = useCallback(() => {
+  const updateHeaderStartColumn = useCallback((kind: HeaderItemKind, start: number | null) => {
     setMenu(prev => ({
       ...prev,
-      blocks: [...prev.blocks, { id: generateId(), title: 'Новый раздел', width: 6, fixedPrice: false, blockPrice: '', showTotalWeight: false, syncStyles: true, items: [] }],
+      [START_FIELD[kind]]: normalizeStartColumn(start, prev[WIDTH_FIELD[kind]]),
     }));
   }, []);
 
+  const updateHeaderMinHeight = useCallback((kind: HeaderItemKind, minHeight: number) => {
+    setMenu(prev => ({
+      ...prev,
+      [MIN_HEIGHT_FIELD[kind]]: clampMinHeight(minHeight),
+    }));
+  }, []);
+
+  const addBlock = useCallback(() => {
+    setMenu(prev => {
+      const id = generateId();
+      return {
+        ...prev,
+        blocks: [...prev.blocks, { id, title: 'Новый раздел', width: 6, minHeight: 0, fixedPrice: false, blockPrice: '', showTotalWeight: false, syncStyles: true, items: [] }],
+        layout: [...prev.layout, { id, type: 'block' }],
+      };
+    });
+  }, []);
+
   const removeBlock = useCallback((id: string) => {
-    setMenu(prev => ({ ...prev, blocks: prev.blocks.filter(b => b.id !== id) }));
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.filter(b => b.id !== id),
+      layout: prev.layout.filter(item => item.id !== id),
+    }));
   }, []);
 
   const updateBlockTitle = useCallback((blockId: string, title: string) => {
@@ -261,6 +411,15 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     setMenu(prev => ({
       ...prev,
       blocks: prev.blocks.map(b => b.id === blockId ? { ...b, width } : b),
+    }));
+  }, []);
+
+  // 0 = авто; верхняя граница 297 мм — высота листа A4
+  const updateBlockMinHeight = useCallback((blockId: string, minHeight: number) => {
+    const value = Number.isFinite(minHeight) ? Math.max(0, Math.min(297, Math.round(minHeight))) : 0;
+    setMenu(prev => ({
+      ...prev,
+      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, minHeight: value } : b),
     }));
   }, []);
 
@@ -306,8 +465,8 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
-  const reorderBlocks = useCallback((blocks: MenuBlock[]) => {
-    setMenu(prev => ({ ...prev, blocks }));
+  const reorderLayout = useCallback((items: LayoutItem[]) => {
+    setMenu(prev => ({ ...prev, layout: items }));
   }, []);
 
   const addItem = useCallback((blockId: string) => {
@@ -382,20 +541,42 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addPromotion = useCallback(() => {
-    setMenu(prev => ({
-      ...prev,
-      promotions: [...prev.promotions, { id: generateId(), title: 'Новая акция', description: '' }],
-    }));
+    setMenu(prev => {
+      const id = generateId();
+      return {
+        ...prev,
+        promotions: [...prev.promotions, { id, title: 'Новая акция', description: '', width: 12, minHeight: 0 }],
+        layout: [...prev.layout, { id, type: 'promotion' }],
+      };
+    });
   }, []);
 
   const removePromotion = useCallback((id: string) => {
-    setMenu(prev => ({ ...prev, promotions: prev.promotions.filter(p => p.id !== id) }));
+    setMenu(prev => ({
+      ...prev,
+      promotions: prev.promotions.filter(p => p.id !== id),
+      layout: prev.layout.filter(item => item.id !== id),
+    }));
   }, []);
 
   const updatePromotion = useCallback((id: string, updates: Partial<Promotion>) => {
     setMenu(prev => ({
       ...prev,
       promotions: prev.promotions.map(p => p.id === id ? { ...p, ...updates } : p),
+    }));
+  }, []);
+
+  const updatePromotionWidth = useCallback((id: string, width: number) => {
+    setMenu(prev => ({
+      ...prev,
+      promotions: prev.promotions.map(p => p.id === id ? { ...p, width: clampGridWidth(width, 12) } : p),
+    }));
+  }, []);
+
+  const updatePromotionMinHeight = useCallback((id: string, minHeight: number) => {
+    setMenu(prev => ({
+      ...prev,
+      promotions: prev.promotions.map(p => p.id === id ? { ...p, minHeight: clampMinHeight(minHeight) } : p),
     }));
   }, []);
 
@@ -462,11 +643,11 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   return (
     <MenuContext.Provider value={{
       menu, savedConfigs, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
-      addHeaderItem, removeHeaderItem, updateHeaderSectionStyle,
-      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
-      updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, updateBlockSyncStyles, reorderBlocks,
+      addHeaderItem, removeHeaderItem, updateHeaderSectionStyle, updateHeaderStartColumn, updateHeaderMinHeight,
+      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockMinHeight, updateBlockFixedPrice, updateBlockPrice,
+      updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, updateBlockSyncStyles, reorderLayout,
       addItem, removeItem, updateItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle,
-      addPromotion, removePromotion, updatePromotion,
+      addPromotion, removePromotion, updatePromotion, updatePromotionWidth, updatePromotionMinHeight,
       saveConfiguration, loadConfiguration, deleteConfiguration,
       exportMenu, importMenu,
       isEditMode, toggleEditMode,

@@ -12,16 +12,20 @@ interface Props {
 
 const DEFAULT_TITLE_STYLE: TextStyle = { fontSize: 16, fontFamily: 'Cormorant Garamond, Georgia, serif', fontWeight: 500 };
 
+const HEIGHT_STEP_MM = 25;
+
 export default function MenuBlockCard({ block }: Props) {
   const {
     updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
     removeBlock, addItem, isEditMode, updateBlockTitleStyle, updateBlockBorder,
-    updateBlockShowTotalWeight, updateBlockSyncStyles
+    updateBlockShowTotalWeight, updateBlockSyncStyles, updateBlockMinHeight
   } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(0);
 
   const {
     attributes,
@@ -33,6 +37,7 @@ export default function MenuBlockCard({ block }: Props) {
   } = useSortable({ id: block.id });
 
   const titleStyle = block.titleStyle || DEFAULT_TITLE_STYLE;
+  const filledHeightSteps = Math.ceil((block.minHeight ?? 0) / HEIGHT_STEP_MM);
 
   const borderStyle = block.borderStyle || 'none';
   const borderWidth = block.borderWidth || 1;
@@ -56,6 +61,7 @@ export default function MenuBlockCard({ block }: Props) {
     transform: CSS.Transform.toString(transform),
     transition,
     gridColumn: `span ${block.width}`,
+    minHeight: block.minHeight ? `${block.minHeight}mm` : undefined,
     ...borderCss,
   };
 
@@ -76,6 +82,29 @@ export default function MenuBlockCard({ block }: Props) {
       const deltaCols = Math.round(delta / colWidth);
       const newWidth = Math.max(3, Math.min(12, startWidthRef.current + deltaCols));
       updateBlockWidth(block.id, newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleHeightResizeStart = (e: React.MouseEvent) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    startYRef.current = e.clientY;
+    startHeightRef.current = block.minHeight ?? 0;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const deltaMm = Math.round((ev.clientY - startYRef.current) / (96 / 25.4) / 5) * 5;
+      updateBlockMinHeight(block.id, startHeightRef.current + deltaMm);
     };
 
     const handleMouseUp = () => {
@@ -129,6 +158,20 @@ export default function MenuBlockCard({ block }: Props) {
         </div>
       )}
 
+      {/* Height resize handle */}
+      {isEditMode && (
+        <div
+          onMouseDown={handleHeightResizeStart}
+          className="absolute top-2 right-16 cursor-row-resize p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
+          title="Потяните для изменения высоты"
+        >
+          <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 8h14l-7 7z"/>
+            <path d="M5 16h14l-7-7z"/>
+          </svg>
+        </div>
+      )}
+
       {/* Remove button */}
       {isEditMode && (
         <button
@@ -175,7 +218,7 @@ export default function MenuBlockCard({ block }: Props) {
             />
           ) : (
             <h2
-              className="flex-1 min-w-0 truncate"
+              className="flex-1 min-w-0 break-words"
               style={{
                 fontSize: `${titleStyle.fontSize}px`,
                 fontFamily: titleStyle.fontFamily,
@@ -251,6 +294,31 @@ export default function MenuBlockCard({ block }: Props) {
           </div>
         )}
 
+        {/* Min height control — рядом с шириной, а не внутри свёрнутой панели оформления:
+            спрятанный за двумя нажатиями контрол пользователь просто не найдёт. */}
+        {isEditMode && (
+          <div className="mb-2 flex items-center gap-1 edit-control">
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Высота:</span>
+            <div className="flex gap-px">
+              {Array.from({ length: 12 }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => updateBlockMinHeight(
+                    block.id,
+                    block.minHeight === (i + 1) * HEIGHT_STEP_MM ? 0 : (i + 1) * HEIGHT_STEP_MM,
+                  )}
+                  className={`w-2 h-2 transition-colors ${
+                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-200'
+                  } hover:bg-black`}
+                />
+              ))}
+            </div>
+            <span className="text-[9px] text-gray-300 normal-case tracking-normal tabular-nums">
+              {block.minHeight ? `${block.minHeight} мм` : 'по содержимому'}
+            </span>
+          </div>
+        )}
+
         {/* Style and border controls */}
         {isEditMode && (
           <SectionStylePanel
@@ -281,7 +349,7 @@ export default function MenuBlockCard({ block }: Props) {
               />
               <span className="text-[9px] text-gray-500 uppercase tracking-wider">Синхронизировать стили блюд</span>
             </div>
-          </SectionStylePanel>
+            </SectionStylePanel>
         )}
 
         {/* Divider */}
@@ -290,7 +358,7 @@ export default function MenuBlockCard({ block }: Props) {
         {/* Menu items */}
         <div className="space-y-1 pl-3">
           {block.items.map((item) => (
-            <MenuItemCard key={item.id} blockId={block.id} item={item} hidePrice={block.fixedPrice} />
+            <MenuItemCard key={item.id} blockId={block.id} item={item} hidePrice={block.fixedPrice && !!block.blockPrice} />
           ))}
         </div>
 

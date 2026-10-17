@@ -49,7 +49,7 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
           />
         ) : (
           <span
-            className="flex-shrink-0 max-w-[60%] truncate"
+            className="min-w-0 max-w-[60%] break-words"
             style={{
               fontSize: `${nameStyle.fontSize}px`,
               fontFamily: nameStyle.fontFamily,

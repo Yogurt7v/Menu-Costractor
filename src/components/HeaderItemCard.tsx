@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useMenu } from '../context/MenuContext';
+import { useMenu, WIDTH_FIELD, START_FIELD, MIN_HEIGHT_FIELD, maxStartColumn } from '../context/MenuContext';
 import { HeaderItemKind, TextStyle, SectionStyle } from '../types';
 import SectionStylePanel from './SectionStylePanel';
 
@@ -13,31 +13,42 @@ export const HEADER_ITEM_IDS: Record<HeaderItemKind, string> = {
   dayOfWeek: '__header_day__',
 };
 
-const WIDTH_FIELD: Record<HeaderItemKind, 'headerPromoWidth' | 'logoWidth' | 'dayWidth'> = {
-  headerPromo: 'headerPromoWidth',
-  logo: 'logoWidth',
-  dayOfWeek: 'dayWidth',
-};
+// MIN_HEADER_WIDTH обязан совпадать с минимумом clampWidth() в MenuContext:
+// иначе выбор точки даст значение, которое загрузка страницы тихо перепишет.
+const MIN_HEADER_WIDTH = 3;
+const MAX_HEADER_WIDTH = 12;
+
+const HEIGHT_STEP_MM = 25;
 
 const DEFAULT_PROMO_TITLE_STYLE: TextStyle = { fontSize: 12, fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 400 };
 const DEFAULT_DAY_TITLE_STYLE: TextStyle = { fontSize: 24, fontFamily: 'Cormorant Garamond, Georgia, serif', fontWeight: 700 };
 
 interface Props {
   kind: HeaderItemKind;
+  suggestedStart: number;
 }
 
-export default function HeaderItemCard({ kind }: Props) {
+export default function HeaderItemCard({ kind, suggestedStart }: Props) {
   const {
     menu, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize,
-    updateDayOfWeek, removeHeaderItem, updateHeaderSectionStyle, isEditMode,
+    updateDayOfWeek, removeHeaderItem, updateHeaderSectionStyle, updateHeaderStartColumn,
+    updateHeaderMinHeight, isEditMode,
   } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const startXRef = useRef(0);
   const startWidthRef = useRef(0);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(0);
 
   const width = menu[WIDTH_FIELD[kind]];
+  const minHeight = menu[MIN_HEIGHT_FIELD[kind]] ?? 0;
+  const filledHeightSteps = Math.ceil(minHeight / HEIGHT_STEP_MM);
+
+  const rawStart = menu[START_FIELD[kind]];
+  const maxStart = maxStartColumn(width);
+  const start = rawStart == null ? null : Math.min(maxStart, Math.max(1, Math.round(rawStart)));
 
   // Per-section style (promo / day only; logo has no styling)
   const sectionStyle: SectionStyle | undefined =
@@ -74,7 +85,8 @@ export default function HeaderItemCard({ kind }: Props) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    gridColumn: `span ${width}`,
+    gridColumn: start !== null ? `${start} / span ${width}` : `span ${width}`,
+    minHeight: minHeight ? `${minHeight}mm` : undefined,
     ...borderCss,
   };
 
@@ -92,8 +104,31 @@ export default function HeaderItemCard({ kind }: Props) {
       const colWidth = container.offsetWidth / 12;
       const delta = ev.clientX - startXRef.current;
       const deltaCols = Math.round(delta / colWidth);
-      const newWidth = Math.max(3, Math.min(12, startWidthRef.current + deltaCols));
+      const newWidth = Math.max(MIN_HEADER_WIDTH, Math.min(MAX_HEADER_WIDTH, startWidthRef.current + deltaCols));
       updateMenuField(WIDTH_FIELD[kind], newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleHeightResizeStart = (e: React.MouseEvent) => {
+    if (!isEditMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(true);
+    startYRef.current = e.clientY;
+    startHeightRef.current = minHeight;
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      const deltaMm = Math.round((ev.clientY - startYRef.current) / (96 / 25.4) / 5) * 5;
+      updateHeaderMinHeight(kind, startHeightRef.current + deltaMm);
     };
 
     const handleMouseUp = () => {
@@ -309,6 +344,20 @@ export default function HeaderItemCard({ kind }: Props) {
         </div>
       )}
 
+      {/* Height resize handle */}
+      {isEditMode && (
+        <div
+          onMouseDown={handleHeightResizeStart}
+          className="absolute top-2 right-16 cursor-row-resize p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
+          title="Потяните для изменения высоты"
+        >
+          <svg className="w-3 h-3 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 8h14l-7 7z"/>
+            <path d="M5 16h14l-7-7z"/>
+          </svg>
+        </div>
+      )}
+
       {/* Remove button */}
       {isEditMode && (
         <button
@@ -329,13 +378,64 @@ export default function HeaderItemCard({ kind }: Props) {
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
-                  onClick={() => updateMenuField(WIDTH_FIELD[kind], i + 1)}
+                  onClick={() => updateMenuField(WIDTH_FIELD[kind], Math.max(MIN_HEADER_WIDTH, Math.min(MAX_HEADER_WIDTH, i + 1)))}
                   className={`w-2 h-2 transition-colors ${
                     i < width ? 'bg-black' : 'bg-gray-200'
                   } hover:bg-black`}
                 />
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Min height control — рядом с шириной, а не внутри свёрнутой панели оформления */}
+        {isEditMode && (
+          <div className="mb-2 flex items-center gap-1 edit-control">
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Высота:</span>
+            <div className="flex gap-px">
+              {Array.from({ length: 12 }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => updateHeaderMinHeight(kind, minHeight === (i + 1) * HEIGHT_STEP_MM ? 0 : (i + 1) * HEIGHT_STEP_MM)}
+                  className={`w-2 h-2 transition-colors ${
+                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-200'
+                  } hover:bg-black`}
+                />
+              ))}
+            </div>
+            <span className="text-[9px] text-gray-300 normal-case tracking-normal tabular-nums">
+              {minHeight ? `${minHeight} мм` : 'по содержимому'}
+            </span>
+          </div>
+        )}
+
+        {/* Explicit column: the section keeps its place when other sections are removed */}
+        {isEditMode && (
+          <div className="mb-2 flex items-center gap-1.5 edit-control">
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={start !== null}
+                onChange={(e) => updateHeaderStartColumn(kind, e.target.checked ? Math.min(maxStart, suggestedStart) : null)}
+                className="w-3 h-3 accent-black cursor-pointer"
+              />
+              <span className="text-[9px] text-gray-400 uppercase tracking-wider whitespace-nowrap">Колонка:</span>
+            </label>
+            {start !== null ? (
+              <div className="flex gap-px">
+                {Array.from({ length: maxStart }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => updateHeaderStartColumn(kind, i + 1)}
+                    className={`w-2 h-2 transition-colors ${
+                      i === start - 1 ? 'bg-black' : 'bg-gray-200'
+                    } hover:bg-black`}
+                  />
+                ))}
+              </div>
+            ) : (
+              <span className="text-[9px] text-gray-300 normal-case tracking-normal">авто</span>
+            )}
           </div>
         )}
 

@@ -9,13 +9,16 @@ interface Props {
 
 const DEFAULT_TITLE_STYLE: TextStyle = { fontSize: 14, fontFamily: 'Inter, system-ui, sans-serif', fontWeight: 700 };
 
+const HEIGHT_STEP_MM = 25;
+
 export default function PromotionCard({ promotion }: Props) {
-  const { updatePromotion, isEditMode } = useMenu();
+  const { updatePromotion, updatePromotionWidth, updatePromotionMinHeight, isEditMode } = useMenu();
 
   const titleStyle = promotion.titleStyle || DEFAULT_TITLE_STYLE;
   const borderStyle = promotion.borderStyle || 'solid';
   const borderWidth = promotion.borderWidth || 1;
   const borderColor = promotion.borderColor || '#000000';
+  const filledHeightSteps = Math.ceil((promotion.minHeight ?? 0) / HEIGHT_STEP_MM);
   const borderCss = borderStyle !== 'none'
     ? {
         border: `${borderWidth}px ${borderStyle} ${borderColor}`,
@@ -26,7 +29,7 @@ export default function PromotionCard({ promotion }: Props) {
   return (
     <div
       className={`py-3 px-4 ${borderStyle !== 'none' ? 'decorative-border' : ''}`}
-      style={borderCss}
+      style={{ ...borderCss, minHeight: promotion.minHeight ? `${promotion.minHeight}mm` : undefined }}
     >
       {/* Section styling (editable) */}
       {isEditMode && (
@@ -40,6 +43,47 @@ export default function PromotionCard({ promotion }: Props) {
           onBorderWidthChange={(borderWidth) => updatePromotion(promotion.id, { borderWidth })}
           onBorderColorChange={(borderColor) => updatePromotion(promotion.id, { borderColor })}
         />
+      )}
+
+      {/* Width and min height controls — вне свёрнутой панели оформления, как в MenuBlockCard */}
+      {isEditMode && (
+        <>
+          <div className="mb-2 flex items-center gap-1 edit-control">
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Ширина:</span>
+            <div className="flex gap-px">
+              {Array.from({ length: 12 }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => updatePromotionWidth(promotion.id, i + 1)}
+                  className={`w-2 h-2 transition-colors ${
+                    i < promotion.width ? 'bg-black' : 'bg-gray-200'
+                  } hover:bg-black`}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="mb-2 flex items-center gap-1 edit-control">
+            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Высота:</span>
+            <div className="flex gap-px">
+              {Array.from({ length: 12 }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => updatePromotionMinHeight(
+                    promotion.id,
+                    promotion.minHeight === (i + 1) * HEIGHT_STEP_MM ? 0 : (i + 1) * HEIGHT_STEP_MM,
+                  )}
+                  className={`w-2 h-2 transition-colors ${
+                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-200'
+                  } hover:bg-black`}
+                />
+              ))}
+            </div>
+            <span className="text-[9px] text-gray-300 normal-case tracking-normal tabular-nums">
+              {promotion.minHeight ? `${promotion.minHeight} мм` : 'по содержимому'}
+            </span>
+          </div>
+        </>
       )}
 
       <div className="flex items-baseline gap-3">

@@ -22,6 +22,7 @@ export interface MenuBlock {
   title: string;
   items: MenuItem[];
   width: number; // 1-12 grid columns
+  minHeight?: number; // мм; МИНИМУМ, не фиксированная высота: 0 = авто, длинные блоки всё равно растут
   fixedPrice: boolean; // true = одна цена за весь блок
   blockPrice: string; // цена за весь блок (если fixedPrice = true)
   titleStyle?: TextStyle;
@@ -46,6 +47,8 @@ export interface Promotion {
   discount?: string;
   validUntil?: string;
   price?: string;
+  width: number; // 1-12 grid columns
+  minHeight?: number; // мм; МИНИМУМ, не фиксированная высота: 0 = авто, длинные акции всё равно растут
   titleStyle?: TextStyle;
   borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
   borderWidth?: number;
@@ -67,20 +70,32 @@ export interface SectionStyle {
   borderColor?: string;
 }
 
+export interface LayoutItem {
+  id: string;
+  type: 'block' | 'promotion';
+}
+
 export interface RestaurantMenu {
   name: string;
   logo: string | null;
   logoSize: number; // px
   logoWidth: number; // 1-12 grid columns
+  logoStartColumn?: number | null; // колонка старта (1-12); null = авто-раскладка, без закрепления
+  logoMinHeight?: number; // мм; 0 = авто
   showLogo: boolean; // показывать логотип в шапке
   headerPromo: HeaderPromo;
   headerPromoWidth: number; // 1-12 grid columns
+  headerPromoStartColumn?: number | null; // колонка старта (1-12); null = авто-раскладка, без закрепления
+  headerPromoMinHeight?: number; // мм; 0 = авто
   showHeaderPromo: boolean; // показывать бизнес-ланч в шапке
   headerPromoStyle?: SectionStyle;
   dayOfWeek: string;
   dayWidth: number; // 1-12 grid columns
+  dayStartColumn?: number | null; // колонка старта (1-12); null = авто-раскладка, без закрепления
+  dayMinHeight?: number; // мм; 0 = авто
   showDay: boolean; // показывать день недели в шапке
   dayStyle?: SectionStyle;
   blocks: MenuBlock[];
   promotions: Promotion[];
+  layout: LayoutItem[]; // сохранённый порядок отрисовки блоков и акций вместе
 }
