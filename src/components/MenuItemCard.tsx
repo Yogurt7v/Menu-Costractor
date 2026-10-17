@@ -25,7 +25,11 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
     <div className="group relative py-1.5">
       {isEditMode && (
         <button
-          onClick={() => removeItem(blockId, item.id)}
+          onClick={() => {
+            if (window.confirm(`Удалить блюдо "${item.name}"? Это действие нельзя отменить.`)) {
+              removeItem(blockId, item.id);
+            }
+          }}
           className="absolute -left-5 top-1/2 -translate-y-1/2 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity edit-control"
         >
           ✕

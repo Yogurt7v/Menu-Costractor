@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -24,10 +24,42 @@ import HeaderItemCard, { HEADER_ITEM_IDS } from './components/HeaderItemCard';
 
 const DEFAULT_HEADER_ORDER: HeaderItemKind[] = ['headerPromo', 'logo', 'dayOfWeek'];
 
+function WelcomeOverlay({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="welcome-overlay" onClick={onClose}>
+      <div className="welcome-overlay-content" onClick={e => e.stopPropagation()}>
+        <h2 className="text-xl font-bold mb-4">Добро пожаловать в конструктор меню</h2>
+        <div className="space-y-3 text-sm text-gray-600 mb-6">
+          <p><strong>1.</strong> Нажмите «✏ Изменить» на панели выше, чтобы начать редактирование.</p>
+          <p><strong>2.</strong> Перетаскивайте разделы и акции за иконку ≡ для изменения порядка.</p>
+          <p><strong>3.</strong> Изменяйте ширину и высоту разделов точками или перетаскиванием.</p>
+          <p><strong>4.</strong> Нажмите «+ Раздел» для добавления новых элементов.</p>
+          <p><strong>5.</strong> Данные сохраняются автоматически в браузере.</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="w-full py-2 bg-black text-white rounded hover:bg-gray-800 transition-colors"
+        >
+          Начать работу
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MenuEditor() {
-  const { menu, reorderLayout } = useMenu();
+  const { menu, reorderLayout, isEditMode } = useMenu();
 
   const [headerOrder, setHeaderOrder] = useState<HeaderItemKind[]>(DEFAULT_HEADER_ORDER);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !localStorage.getItem('menu-welcome-seen');
+  });
+
+  useEffect(() => {
+    if (showWelcome) {
+      localStorage.setItem('menu-welcome-seen', '1');
+    }
+  }, [showWelcome]);
 
   // Порядок блоков и акций вперемешку приходит из контекста и сохраняется в меню
   const order: LayoutItem[] = menu.layout;
@@ -108,8 +140,15 @@ function MenuEditor() {
         <PageOverflowWarning />
       </div>
 
+      {showWelcome && <WelcomeOverlay onClose={() => setShowWelcome(false)} />}
+
       {/* A4 Page */}
       <div className="a4-page edit-mode">
+        {isEditMode && (
+          <div className="edit-mode-banner no-print">
+            Режим редактирования — нажмите «✓ Готово» для выхода
+          </div>
+        )}
         {/* Header zone */}
         {visibleHeaderItems.length > 0 && (
           <DndContext

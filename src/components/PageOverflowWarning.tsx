@@ -10,10 +10,19 @@ const PX_PER_MM = 96 / 25.4;
 function measureContentMm(): number | null {
   const page = document.querySelector('.a4-page');
   if (!page) return null;
-  const style = getComputedStyle(page);
-  const contentPx = page.scrollHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
-  if (!Number.isFinite(contentPx) || contentPx <= 0) return null;
-  return contentPx / PX_PER_MM;
+  const hidden = document.createElement('div');
+  hidden.style.cssText = 'position:absolute;visibility:hidden;top:0;left:0;width:210mm;pointer-events:none;';
+  document.body.appendChild(hidden);
+  const clone = page.cloneNode(true) as HTMLElement;
+  clone.classList.remove('edit-mode');
+  clone.style.minHeight = 'auto';
+  clone.style.padding = '10mm 15mm';
+  clone.querySelectorAll('.edit-control, .no-print, .edit-mode-banner').forEach(el => el.remove());
+  hidden.appendChild(clone);
+  const height = hidden.scrollHeight - 20 * (96 / 25.4);
+  document.body.removeChild(hidden);
+  if (!Number.isFinite(height) || height <= 0) return null;
+  return height / PX_PER_MM;
 }
 
 const formatMm = (value: number) => value.toFixed(1).replace('.', ',');

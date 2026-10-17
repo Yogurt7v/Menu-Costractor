@@ -7,17 +7,34 @@ interface Props {
 }
 
 export default function SaveModal({ isOpen, onClose }: Props) {
-  const { saveConfiguration } = useMenu();
+  const { menu, saveConfiguration } = useMenu();
   const [name, setName] = useState('');
 
   if (!isOpen) return null;
 
   const handleSave = () => {
-    if (name.trim()) {
-      saveConfiguration(name.trim());
-      setName('');
-      onClose();
-    }
+    const trimmed = name.trim() || menu.name || 'menu';
+    saveConfiguration(trimmed);
+    setName('');
+    onClose();
+  };
+
+  const handleDownload = () => {
+    const dataStr = JSON.stringify(menu, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeName = (menu.name || 'menu')
+      .replace(/[^\wа-яА-ЯёЁ\- ]+/g, '')
+      .trim()
+      .replace(/\s+/g, '-') || 'menu';
+    a.download = `${safeName}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    onClose();
   };
 
   return (
@@ -41,9 +58,14 @@ export default function SaveModal({ isOpen, onClose }: Props) {
             Отмена
           </button>
           <button
+            onClick={handleDownload}
+            className="px-4 py-2 text-sm border border-black text-black rounded hover:bg-black hover:text-white transition-colors"
+          >
+            Скачать JSON
+          </button>
+          <button
             onClick={handleSave}
-            disabled={!name.trim()}
-            className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-sm bg-black text-white rounded hover:bg-gray-800"
           >
             Сохранить
           </button>

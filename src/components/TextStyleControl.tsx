@@ -22,7 +22,7 @@ export default function TextStyleControl({ style, onChange }: Props) {
         <input
           type="range"
           min="10"
-          max="24"
+          max="48"
           value={style.fontSize}
           onChange={(e) => onChange({ ...style, fontSize: Number(e.target.value) })}
           className="w-12 h-1 accent-black"

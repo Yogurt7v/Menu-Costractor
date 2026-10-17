@@ -172,10 +172,13 @@ export default function MenuBlockCard({ block }: Props) {
         </div>
       )}
 
-      {/* Remove button */}
       {isEditMode && (
         <button
-          onClick={() => removeBlock(block.id)}
+          onClick={() => {
+            if (window.confirm(`Удалить раздел "${block.title}"? Это действие нельзя отменить.`)) {
+              removeBlock(block.id);
+            }
+          }}
           className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700 transition-colors edit-control shadow-sm z-20"
           title="Удалить раздел"
         >
@@ -276,21 +279,25 @@ export default function MenuBlockCard({ block }: Props) {
           )}
         </div>
 
-        {/* Width control */}
         {isEditMode && (
           <div className="mb-2 flex items-center gap-1 edit-control">
-            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Ширина:</span>
-            <div className="flex gap-px">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Ширина:</span>
+            <div className="flex">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => updateBlockWidth(block.id, i + 1)}
-                  className={`w-2 h-2 transition-colors ${
-                    i < block.width ? 'bg-black' : 'bg-gray-200'
-                  } hover:bg-black`}
-                />
+                  className="group w-1.5 h-1.5 flex items-center justify-center"
+                >
+                  <span className={`block w-1.5 h-1.5 transition-colors ${
+                    i < block.width ? 'bg-black' : 'bg-gray-300'
+                  } group-hover:bg-black`} />
+                </button>
               ))}
             </div>
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
+              {block.width} кол.
+            </span>
           </div>
         )}
 
@@ -298,8 +305,8 @@ export default function MenuBlockCard({ block }: Props) {
             спрятанный за двумя нажатиями контрол пользователь просто не найдёт. */}
         {isEditMode && (
           <div className="mb-2 flex items-center gap-1 edit-control">
-            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Высота:</span>
-            <div className="flex gap-px">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Высота:</span>
+            <div className="flex">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
@@ -307,13 +314,15 @@ export default function MenuBlockCard({ block }: Props) {
                     block.id,
                     block.minHeight === (i + 1) * HEIGHT_STEP_MM ? 0 : (i + 1) * HEIGHT_STEP_MM,
                   )}
-                  className={`w-2 h-2 transition-colors ${
-                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-200'
-                  } hover:bg-black`}
-                />
+                  className="group w-1.5 h-1.5 flex items-center justify-center"
+                >
+                  <span className={`block w-1.5 h-1.5 transition-colors ${
+                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-300'
+                  } group-hover:bg-black`} />
+                </button>
               ))}
             </div>
-            <span className="text-[9px] text-gray-300 normal-case tracking-normal tabular-nums">
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
               {block.minHeight ? `${block.minHeight} мм` : 'по содержимому'}
             </span>
           </div>

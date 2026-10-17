@@ -36,6 +36,42 @@ export default function Toolbar() {
     window.print();
   };
 
+  const handleSaveAsPdf = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    const content = document.querySelector('.a4-page');
+    if (!content) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${menu.name || 'Меню'}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=PT+Serif:wght@400;700&display=swap');
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'PT Serif', Georgia, serif; background: white; }
+          .a4-page { width: 210mm; min-height: 297mm; background: white; padding: 10mm 15mm; }
+          .no-print, .edit-control { display: none !important; }
+          .editable-block { border: none !important; padding: 0 !important; }
+          input, textarea { border: none !important; background: transparent !important; padding: 0 !important; outline: none !important; box-shadow: none !important; resize: none !important; color: inherit !important; }
+          h1, h2, h3, h4 { font-family: 'Cormorant Garamond', Georgia, serif; }
+          .price-line .dots { flex: 1; border-bottom: 1px dotted #bbb; margin: 0 6px; min-width: 20px; position: relative; top: -3px; }
+          .header-rule-thin { border: none; height: 0.5px; background: #ccc; margin: 0; }
+          .decorative-border { position: relative; }
+          .decorative-border::before, .decorative-border::after { content: ''; position: absolute; width: 12px; height: 12px; border: 1px solid currentColor; opacity: 0.3; }
+          .decorative-border::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+          .decorative-border::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+        </style>
+      </head>
+      <body>
+        ${content.outerHTML}
+        <script>window.onload = function() { window.print(); }</script>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <>
       <div className="no-print bg-white border-b border-gray-200 shadow-sm">
@@ -141,7 +177,13 @@ export default function Toolbar() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
-              Печать / PDF
+              Печать
+            </button>
+            <button
+              onClick={handleSaveAsPdf}
+              className="px-3 py-1.5 border border-black text-black text-xs uppercase tracking-wider hover:bg-black hover:text-white transition-colors"
+            >
+              Сохранить как PDF
             </button>
             <button
               onClick={toggleEditMode}

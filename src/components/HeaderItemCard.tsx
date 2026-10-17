@@ -358,10 +358,14 @@ export default function HeaderItemCard({ kind, suggestedStart }: Props) {
         </div>
       )}
 
-      {/* Remove button */}
       {isEditMode && (
         <button
-          onClick={() => removeHeaderItem(kind)}
+          onClick={() => {
+            const names: Record<string, string> = { headerPromo: 'Бизнес-ланч', logo: 'Логотип', dayOfWeek: 'День недели' };
+            if (window.confirm(`Удалить "${names[kind]}" с макета? Это действие нельзя отменить.`)) {
+              removeHeaderItem(kind);
+            }
+          }}
           className="absolute top-2 right-2 w-6 h-6 bg-red-600 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-700 transition-colors edit-control shadow-sm z-20"
           title="Удалить с макета"
         >
@@ -370,40 +374,46 @@ export default function HeaderItemCard({ kind, suggestedStart }: Props) {
       )}
 
       <div className="pt-5">
-        {/* Width control */}
         {isEditMode && (
           <div className="mb-2 flex items-center gap-1 edit-control">
-            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Ширина:</span>
-            <div className="flex gap-px">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Ширина:</span>
+            <div className="flex">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => updateMenuField(WIDTH_FIELD[kind], Math.max(MIN_HEADER_WIDTH, Math.min(MAX_HEADER_WIDTH, i + 1)))}
-                  className={`w-2 h-2 transition-colors ${
-                    i < width ? 'bg-black' : 'bg-gray-200'
-                  } hover:bg-black`}
-                />
+                  className="group w-1.5 h-1.5 flex items-center justify-center"
+                >
+                  <span className={`block w-1.5 h-1.5 transition-colors ${
+                    i < width ? 'bg-black' : 'bg-gray-300'
+                  } group-hover:bg-black`} />
+                </button>
               ))}
             </div>
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
+              {width} кол.
+            </span>
           </div>
         )}
 
         {/* Min height control — рядом с шириной, а не внутри свёрнутой панели оформления */}
         {isEditMode && (
           <div className="mb-2 flex items-center gap-1 edit-control">
-            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Высота:</span>
-            <div className="flex gap-px">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Высота:</span>
+            <div className="flex">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => updateHeaderMinHeight(kind, minHeight === (i + 1) * HEIGHT_STEP_MM ? 0 : (i + 1) * HEIGHT_STEP_MM)}
-                  className={`w-2 h-2 transition-colors ${
-                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-200'
-                  } hover:bg-black`}
-                />
+                  className="group w-1.5 h-1.5 flex items-center justify-center"
+                >
+                  <span className={`block w-1.5 h-1.5 transition-colors ${
+                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-300'
+                  } group-hover:bg-black`} />
+                </button>
               ))}
             </div>
-            <span className="text-[9px] text-gray-300 normal-case tracking-normal tabular-nums">
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
               {minHeight ? `${minHeight} мм` : 'по содержимому'}
             </span>
           </div>
@@ -422,19 +432,21 @@ export default function HeaderItemCard({ kind, suggestedStart }: Props) {
               <span className="text-[9px] text-gray-400 uppercase tracking-wider whitespace-nowrap">Колонка:</span>
             </label>
             {start !== null ? (
-              <div className="flex gap-px">
+              <div className="flex">
                 {Array.from({ length: maxStart }, (_, i) => (
                   <button
                     key={i}
                     onClick={() => updateHeaderStartColumn(kind, i + 1)}
-                    className={`w-2 h-2 transition-colors ${
-                      i === start - 1 ? 'bg-black' : 'bg-gray-200'
-                    } hover:bg-black`}
-                  />
+                    className="group w-1.5 h-1.5 flex items-center justify-center"
+                  >
+                    <span className={`block w-1.5 h-1.5 transition-colors ${
+                      i === start - 1 ? 'bg-black' : 'bg-gray-300'
+                    } group-hover:bg-black`} />
+                  </button>
                 ))}
               </div>
             ) : (
-              <span className="text-[9px] text-gray-300 normal-case tracking-normal">авто</span>
+              <span className="text-[9px] text-gray-500 normal-case tracking-normal">авто</span>
             )}
           </div>
         )}

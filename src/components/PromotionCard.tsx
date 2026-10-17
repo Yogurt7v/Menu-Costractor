@@ -45,27 +45,31 @@ export default function PromotionCard({ promotion }: Props) {
         />
       )}
 
-      {/* Width and min height controls — вне свёрнутой панели оформления, как в MenuBlockCard */}
       {isEditMode && (
         <>
           <div className="mb-2 flex items-center gap-1 edit-control">
-            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Ширина:</span>
-            <div className="flex gap-px">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Ширина:</span>
+            <div className="flex">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
                   onClick={() => updatePromotionWidth(promotion.id, i + 1)}
-                  className={`w-2 h-2 transition-colors ${
-                    i < promotion.width ? 'bg-black' : 'bg-gray-200'
-                  } hover:bg-black`}
-                />
+                  className="group w-1.5 h-1.5 flex items-center justify-center"
+                >
+                  <span className={`block w-1.5 h-1.5 transition-colors ${
+                    i < promotion.width ? 'bg-black' : 'bg-gray-300'
+                  } group-hover:bg-black`} />
+                </button>
               ))}
             </div>
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
+              {promotion.width} кол.
+            </span>
           </div>
 
           <div className="mb-2 flex items-center gap-1 edit-control">
-            <span className="text-[9px] text-gray-400 uppercase tracking-wider">Высота:</span>
-            <div className="flex gap-px">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Высота:</span>
+            <div className="flex">
               {Array.from({ length: 12 }, (_, i) => (
                 <button
                   key={i}
@@ -73,13 +77,15 @@ export default function PromotionCard({ promotion }: Props) {
                     promotion.id,
                     promotion.minHeight === (i + 1) * HEIGHT_STEP_MM ? 0 : (i + 1) * HEIGHT_STEP_MM,
                   )}
-                  className={`w-2 h-2 transition-colors ${
-                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-200'
-                  } hover:bg-black`}
-                />
+                  className="group w-1.5 h-1.5 flex items-center justify-center"
+                >
+                  <span className={`block w-1.5 h-1.5 transition-colors ${
+                    i < filledHeightSteps ? 'bg-black' : 'bg-gray-300'
+                  } group-hover:bg-black`} />
+                </button>
               ))}
             </div>
-            <span className="text-[9px] text-gray-300 normal-case tracking-normal tabular-nums">
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
               {promotion.minHeight ? `${promotion.minHeight} мм` : 'по содержимому'}
             </span>
           </div>
