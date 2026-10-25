@@ -118,7 +118,7 @@ function MenuEditor() {
   // Блоки и акции лежат в одной сетке из 12 колонок: ширину каждого задаёт gridColumn
   // элемента, поэтому акция уже не разрывает ряд, а встаёт в него бок о бок с блоком.
   const renderItems = () => (
-    <div className="grid grid-cols-12 gap-4">
+    <div className="grid grid-cols-12" style={{ columnGap: '1rem', rowGap: `${menu.blockGapMm}mm` }}>
       {order.map((item) => {
         if (item.type === 'block') {
           const block = menu.blocks.find(b => b.id === item.id);

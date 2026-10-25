@@ -31,6 +31,9 @@ export interface MenuBlock {
   borderColor?: string;
   showTotalWeight?: boolean; // показывать общий вес
   syncStyles?: boolean; // синхронизировать стили всех блюд
+  density?: number; // 0.05-2, default 1; scales internal vertical rhythm
+  styleGroupId?: string; // duplicated copies share this id
+  styleSync?: boolean; // live-sync styles and geometry inside the group
 }
 
 export interface SavedConfiguration {
@@ -98,4 +101,5 @@ export interface RestaurantMenu {
   blocks: MenuBlock[];
   promotions: Promotion[];
   layout: LayoutItem[]; // сохранённый порядок отрисовки блоков и акций вместе
+  blockGapMm: number; // vertical gap between main-grid rows, mm
 }

@@ -91,6 +91,7 @@ const defaultMenu: RestaurantMenu = {
     { id: 'block-3', type: 'block' },
     { id: 'block-4', type: 'block' },
   ],
+  blockGapMm: 4,
 };
 
 import { SavedConfiguration } from '../types';
@@ -110,9 +111,12 @@ interface MenuContextType {
   updateHeaderMinHeight: (kind: HeaderItemKind, minHeight: number) => void;
   addBlock: () => void;
   removeBlock: (id: string) => void;
+  duplicateBlock: (blockId: string) => void;
   updateBlockTitle: (blockId: string, title: string) => void;
   updateBlockWidth: (blockId: string, width: number) => void;
   updateBlockMinHeight: (blockId: string, minHeight: number) => void;
+  updateBlockDensity: (blockId: string, density: number) => void;
+  updateBlockStyleSync: (blockId: string, sync: boolean) => void;
   updateBlockFixedPrice: (blockId: string, fixedPrice: boolean) => void;
   updateBlockPrice: (blockId: string, price: string) => void;
   updateBlockTitleStyle: (blockId: string, style: TextStyle) => void;
@@ -138,6 +142,7 @@ interface MenuContextType {
   importMenu: (file: File) => Promise<void>;
   isEditMode: boolean;
   toggleEditMode: () => void;
+  resetProject: () => void;
 }
 
 const MenuContext = createContext<MenuContextType | null>(null);
@@ -164,6 +169,38 @@ function clampMinHeight(value: any): number {
   const n = Math.round(Number(value));
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(297, n));
+}
+
+// 1 = обычная плотность; 0.05 — максимальное сжатие, 2 — максимальное разрежение.
+function clampDensity(value: any): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.round(Math.max(0.05, Math.min(2, n)) * 100) / 100;
+}
+
+// 4 мм — прежний gap-4 Tailwind; верхняя граница 12 мм, чтобы ряды не разъезжались.
+function clampBlockGap(value: any): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return 4;
+  return Math.max(0, Math.min(12, n));
+}
+
+function isLinkedSource(block: MenuBlock): boolean {
+  return Boolean(block.styleGroupId) && block.styleSync === true;
+}
+
+function applyToGroup(prev: RestaurantMenu, source: MenuBlock, update: (block: MenuBlock) => MenuBlock): RestaurantMenu {
+  if (!isLinkedSource(source)) {
+    return { ...prev, blocks: prev.blocks.map(b => (b.id === source.id ? update(b) : b)) };
+  }
+  return {
+    ...prev,
+    blocks: prev.blocks.map(b =>
+      b.id === source.id || (b.styleGroupId === source.styleGroupId && b.styleSync === true)
+        ? update(b)
+        : b
+    ),
+  };
 }
 
 const HEADER_FLAG: Record<HeaderItemKind, 'showLogo' | 'showHeaderPromo' | 'showDay'> = {
@@ -221,6 +258,7 @@ function normalizeMenu(parsed: any): RestaurantMenu {
   menu.showLogo = menu.showLogo === false ? false : true;
   menu.showHeaderPromo = menu.showHeaderPromo === false ? false : true;
   menu.showDay = menu.showDay === false ? false : true;
+  menu.blockGapMm = clampBlockGap(menu.blockGapMm);
   if (Array.isArray(menu.blocks)) {
     menu.blocks = menu.blocks.map((block: any) => {
       const blockPrice = block.blockPrice ?? '';
@@ -232,6 +270,9 @@ function normalizeMenu(parsed: any): RestaurantMenu {
         minHeight: block.minHeight ?? 0,
         showTotalWeight: block.showTotalWeight ?? false,
         syncStyles: block.syncStyles ?? true,
+        density: clampDensity(block.density),
+        styleGroupId: typeof block.styleGroupId === 'string' && block.styleGroupId ? block.styleGroupId : undefined,
+        styleSync: block.styleSync === true,
         items: Array.isArray(block.items) ? block.items : [],
       };
     });
@@ -400,6 +441,43 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const duplicateBlock = useCallback((blockId: string) => {
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      const clone: MenuBlock = JSON.parse(JSON.stringify(source));
+      const newBlockId = generateId();
+      clone.id = newBlockId;
+      clone.items = clone.items.map(item => ({ ...item, id: generateId() }));
+      clone.title = source.title ? `${source.title} (копия)` : 'Копия';
+
+      let blocks = prev.blocks;
+      if (source.styleGroupId) {
+        clone.styleGroupId = source.styleGroupId;
+        clone.styleSync = source.styleSync === true;
+      } else {
+        const groupId = 'group-' + generateId();
+        clone.styleGroupId = groupId;
+        clone.styleSync = true;
+        blocks = blocks.map(b => (b.id === source.id ? { ...b, styleGroupId: groupId, styleSync: true } : b));
+      }
+
+      const sourceIndex = blocks.findIndex(b => b.id === source.id);
+      const nextBlocks = [...blocks];
+      nextBlocks.splice(sourceIndex + 1, 0, clone);
+
+      const nextLayout = [...prev.layout];
+      const layoutIndex = nextLayout.findIndex(item => item.id === source.id && item.type === 'block');
+      if (layoutIndex === -1) {
+        nextLayout.push({ id: newBlockId, type: 'block' });
+      } else {
+        nextLayout.splice(layoutIndex + 1, 0, { id: newBlockId, type: 'block' });
+      }
+
+      return { ...prev, blocks: nextBlocks, layout: nextLayout };
+    });
+  }, []);
+
   const updateBlockTitle = useCallback((blockId: string, title: string) => {
     setMenu(prev => ({
       ...prev,
@@ -408,19 +486,72 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateBlockWidth = useCallback((blockId: string, width: number) => {
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, width } : b),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      return applyToGroup(prev, source, b => ({ ...b, width }));
+    });
   }, []);
 
   // 0 = авто; верхняя граница 297 мм — высота листа A4
   const updateBlockMinHeight = useCallback((blockId: string, minHeight: number) => {
     const value = Number.isFinite(minHeight) ? Math.max(0, Math.min(297, Math.round(minHeight))) : 0;
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, minHeight: value } : b),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      return applyToGroup(prev, source, b => ({ ...b, minHeight: value }));
+    });
+  }, []);
+
+  const updateBlockDensity = useCallback((blockId: string, density: number) => {
+    const value = clampDensity(density);
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      return applyToGroup(prev, source, b => ({ ...b, density: value }));
+    });
+  }, []);
+
+  const updateBlockStyleSync = useCallback((blockId: string, sync: boolean) => {
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source || !source.styleGroupId) return prev;
+      if (!sync) {
+        return {
+          ...prev,
+          blocks: prev.blocks.map(b => (b.id === blockId ? { ...b, styleSync: false } : b)),
+        };
+      }
+      return {
+        ...prev,
+        blocks: prev.blocks.map(b => {
+          if (b.styleGroupId !== source.styleGroupId) return b;
+          const items = source.items.length === 0
+            ? b.items
+            : b.items.map((item, i) => {
+                const sourceItem = source.items[Math.min(i, source.items.length - 1)];
+                return {
+                  ...item,
+                  nameStyle: sourceItem.nameStyle,
+                  descriptionStyle: sourceItem.descriptionStyle,
+                  priceStyle: sourceItem.priceStyle,
+                };
+              });
+          return {
+            ...b,
+            styleSync: true,
+            width: source.width,
+            minHeight: source.minHeight,
+            density: source.density,
+            titleStyle: source.titleStyle,
+            borderStyle: source.borderStyle,
+            borderWidth: source.borderWidth,
+            borderColor: source.borderColor,
+            items,
+          };
+        }),
+      };
+    });
   }, []);
 
   const updateBlockFixedPrice = useCallback((blockId: string, fixedPrice: boolean) => {
@@ -438,17 +569,19 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateBlockTitleStyle = useCallback((blockId: string, style: TextStyle) => {
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, titleStyle: style } : b),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      return applyToGroup(prev, source, b => ({ ...b, titleStyle: style }));
+    });
   }, []);
 
   const updateBlockBorder = useCallback((blockId: string, updates: { borderStyle?: 'none' | 'solid' | 'dashed' | 'dotted' | 'double'; borderWidth?: number; borderColor?: string }) => {
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => b.id === blockId ? { ...b, ...updates } : b),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      return applyToGroup(prev, source, b => ({ ...b, ...updates }));
+    });
   }, []);
 
   const updateBlockShowTotalWeight = useCallback((blockId: string, show: boolean) => {
@@ -501,43 +634,84 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const updateItemNameStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => {
-        if (b.id !== blockId) return b;
-        // Если синхронизация включена, применяем стиль ко всем блюдам
-        if (b.syncStyles) {
-          return { ...b, items: b.items.map(i => ({ ...i, nameStyle: style })) };
-        }
-        return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, nameStyle: style } : i) };
-      }),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      if (isLinkedSource(source)) {
+        return {
+          ...prev,
+          blocks: prev.blocks.map(b =>
+            b.id === blockId || (b.styleGroupId === source.styleGroupId && b.styleSync === true)
+              ? { ...b, items: b.items.map(i => ({ ...i, nameStyle: style })) }
+              : b
+          ),
+        };
+      }
+      return {
+        ...prev,
+        blocks: prev.blocks.map(b => {
+          if (b.id !== blockId) return b;
+          if (b.syncStyles) {
+            return { ...b, items: b.items.map(i => ({ ...i, nameStyle: style })) };
+          }
+          return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, nameStyle: style } : i) };
+        }),
+      };
+    });
   }, []);
 
   const updateItemDescriptionStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => {
-        if (b.id !== blockId) return b;
-        if (b.syncStyles) {
-          return { ...b, items: b.items.map(i => ({ ...i, descriptionStyle: style })) };
-        }
-        return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, descriptionStyle: style } : i) };
-      }),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      if (isLinkedSource(source)) {
+        return {
+          ...prev,
+          blocks: prev.blocks.map(b =>
+            b.id === blockId || (b.styleGroupId === source.styleGroupId && b.styleSync === true)
+              ? { ...b, items: b.items.map(i => ({ ...i, descriptionStyle: style })) }
+              : b
+          ),
+        };
+      }
+      return {
+        ...prev,
+        blocks: prev.blocks.map(b => {
+          if (b.id !== blockId) return b;
+          if (b.syncStyles) {
+            return { ...b, items: b.items.map(i => ({ ...i, descriptionStyle: style })) };
+          }
+          return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, descriptionStyle: style } : i) };
+        }),
+      };
+    });
   }, []);
 
   const updateItemPriceStyle = useCallback((blockId: string, itemId: string, style: TextStyle) => {
-    setMenu(prev => ({
-      ...prev,
-      blocks: prev.blocks.map(b => {
-        if (b.id !== blockId) return b;
-        if (b.syncStyles) {
-          return { ...b, items: b.items.map(i => ({ ...i, priceStyle: style })) };
-        }
-        return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, priceStyle: style } : i) };
-      }),
-    }));
+    setMenu(prev => {
+      const source = prev.blocks.find(b => b.id === blockId);
+      if (!source) return prev;
+      if (isLinkedSource(source)) {
+        return {
+          ...prev,
+          blocks: prev.blocks.map(b =>
+            b.id === blockId || (b.styleGroupId === source.styleGroupId && b.styleSync === true)
+              ? { ...b, items: b.items.map(i => ({ ...i, priceStyle: style })) }
+              : b
+          ),
+        };
+      }
+      return {
+        ...prev,
+        blocks: prev.blocks.map(b => {
+          if (b.id !== blockId) return b;
+          if (b.syncStyles) {
+            return { ...b, items: b.items.map(i => ({ ...i, priceStyle: style })) };
+          }
+          return { ...b, items: b.items.map(i => i.id === itemId ? { ...i, priceStyle: style } : i) };
+        }),
+      };
+    });
   }, []);
 
   const addPromotion = useCallback(() => {
@@ -640,17 +814,26 @@ export function MenuProvider({ children }: { children: React.ReactNode }) {
     setIsEditMode(prev => !prev);
   }, []);
 
+  const resetProject = useCallback(() => {
+    setMenu(normalizeMenu(JSON.parse(JSON.stringify(defaultMenu))));
+    setSavedConfigs([]);
+    localStorage.removeItem('restaurant-menu-v3');
+    localStorage.removeItem('restaurant-menu-history');
+    setIsEditMode(true);
+  }, []);
+
   return (
     <MenuContext.Provider value={{
       menu, savedConfigs, updateMenuField, updateHeaderPromo, updateLogo, updateLogoSize, updateDayOfWeek,
       addHeaderItem, removeHeaderItem, updateHeaderSectionStyle, updateHeaderStartColumn, updateHeaderMinHeight,
-      addBlock, removeBlock, updateBlockTitle, updateBlockWidth, updateBlockMinHeight, updateBlockFixedPrice, updateBlockPrice,
+      addBlock, removeBlock, duplicateBlock, updateBlockTitle, updateBlockWidth, updateBlockMinHeight,
+      updateBlockDensity, updateBlockStyleSync, updateBlockFixedPrice, updateBlockPrice,
       updateBlockTitleStyle, updateBlockBorder, updateBlockShowTotalWeight, updateBlockSyncStyles, reorderLayout,
       addItem, removeItem, updateItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle,
       addPromotion, removePromotion, updatePromotion, updatePromotionWidth, updatePromotionMinHeight,
       saveConfiguration, loadConfiguration, deleteConfiguration,
       exportMenu, importMenu,
-      isEditMode, toggleEditMode,
+      isEditMode, toggleEditMode, resetProject,
     }}>
       {children}
     </MenuContext.Provider>

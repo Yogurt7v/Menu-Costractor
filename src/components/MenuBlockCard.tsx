@@ -18,7 +18,8 @@ export default function MenuBlockCard({ block }: Props) {
   const {
     updateBlockTitle, updateBlockWidth, updateBlockFixedPrice, updateBlockPrice,
     removeBlock, addItem, isEditMode, updateBlockTitleStyle, updateBlockBorder,
-    updateBlockShowTotalWeight, updateBlockSyncStyles, updateBlockMinHeight
+    updateBlockShowTotalWeight, updateBlockSyncStyles, updateBlockMinHeight,
+    duplicateBlock, updateBlockDensity, updateBlockStyleSync
   } = useMenu();
   const [isResizing, setIsResizing] = useState(false);
   const blockRef = useRef<HTMLDivElement | null>(null);
@@ -37,6 +38,7 @@ export default function MenuBlockCard({ block }: Props) {
   } = useSortable({ id: block.id });
 
   const titleStyle = block.titleStyle || DEFAULT_TITLE_STYLE;
+  const density = block.density ?? 1;
   const filledHeightSteps = Math.ceil((block.minHeight ?? 0) / HEIGHT_STEP_MM);
 
   const borderStyle = block.borderStyle || 'none';
@@ -52,7 +54,7 @@ export default function MenuBlockCard({ block }: Props) {
   const borderCss = borderStyle !== 'none'
     ? {
         border: `${borderWidth}px ${borderStyle} ${borderColor}`,
-        padding: '12px',
+        padding: `${12 * density}px 12px`,
         color: borderColor,
       }
     : {};
@@ -174,6 +176,18 @@ export default function MenuBlockCard({ block }: Props) {
 
       {isEditMode && (
         <button
+          onClick={() => duplicateBlock(block.id)}
+          className="absolute top-2 right-[5.5rem] p-1 hover:bg-gray-200 rounded transition-colors z-10 edit-control"
+          title="Дублировать раздел со стилями и размерами"
+        >
+          <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V5a2 2 0 012-2h9a2 2 0 012 2v9a2 2 0 01-2 2h-2M5 8h9a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2v-9a2 2 0 012-2z" />
+          </svg>
+        </button>
+      )}
+
+      {isEditMode && (
+        <button
           onClick={() => {
             if (window.confirm(`Удалить раздел "${block.title}"? Это действие нельзя отменить.`)) {
               removeBlock(block.id);
@@ -187,9 +201,9 @@ export default function MenuBlockCard({ block }: Props) {
       )}
 
       {/* Block content */}
-      <div className="pt-5">
+      <div style={{ paddingTop: `${20 * density}px` }}>
         {/* Section title with checkbox and price */}
-        <div className="mb-3 flex items-center gap-2">
+        <div className="flex items-center gap-2" style={{ marginBottom: `${12 * density}px` }}>
           {/* Fixed price checkbox */}
           {isEditMode && (
             <label className="flex items-center gap-1 edit-control cursor-pointer flex-shrink-0" title="Одна цена за весь блок">
@@ -251,7 +265,7 @@ export default function MenuBlockCard({ block }: Props) {
 
           {/* Block price (if fixedPrice is true) */}
           {block.fixedPrice && (block.blockPrice || isEditMode) && (
-            <div className="flex items-baseline gap-0.5 flex-shrink-0 ml-auto">
+            <div className={`flex items-baseline gap-0.5 flex-shrink-0 ml-auto ${(block.blockPrice || '').trim() ? '' : 'print:hidden'}`}>
               {isEditMode ? (
                 <input
                   type="text"
@@ -328,6 +342,25 @@ export default function MenuBlockCard({ block }: Props) {
           </div>
         )}
 
+        {isEditMode && (
+          <div className="mb-2 flex items-center gap-1 edit-control">
+            <span className="text-[9px] text-gray-500 uppercase tracking-wider">Плотность:</span>
+            <input
+              type="range"
+              min={5}
+              max={200}
+              step={5}
+              value={Math.round(density * 100)}
+              onChange={(e) => updateBlockDensity(block.id, Number(e.target.value) / 100)}
+              className="w-20 h-1 accent-black cursor-pointer"
+              title="Сжатие вертикальных расстояний между блюдами внутри раздела"
+            />
+            <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
+              {Math.round(density * 100)}%
+            </span>
+          </div>
+        )}
+
         {/* Style and border controls */}
         {isEditMode && (
           <SectionStylePanel
@@ -358,16 +391,32 @@ export default function MenuBlockCard({ block }: Props) {
               />
               <span className="text-[9px] text-gray-500 uppercase tracking-wider">Синхронизировать стили блюд</span>
             </div>
+            {block.styleGroupId && (
+              <div className="flex flex-col gap-0.5">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={block.styleSync === true}
+                    onChange={(e) => updateBlockStyleSync(block.id, e.target.checked)}
+                    className="w-3 h-3 accent-black cursor-pointer"
+                  />
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider">Синхронизировать с копиями</span>
+                </label>
+                <span className="text-[9px] text-gray-400 leading-snug">
+                  Шрифты, рамки, ширина, высота и плотность. При включении стиль этого раздела применяется ко всем копиям.
+                </span>
+              </div>
+            )}
             </SectionStylePanel>
         )}
 
         {/* Divider */}
-        <hr className="header-rule-thin mb-2" />
+        <hr className="header-rule-thin" style={{ marginBottom: `${8 * density}px` }} />
 
         {/* Menu items */}
-        <div className="space-y-1 pl-3">
+        <div className="flex flex-col pl-3" style={{ gap: `${4 * density}px` }}>
           {block.items.map((item) => (
-            <MenuItemCard key={item.id} blockId={block.id} item={item} hidePrice={block.fixedPrice && !!block.blockPrice} />
+            <MenuItemCard key={item.id} blockId={block.id} item={item} density={density} hidePrice={block.fixedPrice && !!block.blockPrice} />
           ))}
         </div>
 
@@ -375,7 +424,8 @@ export default function MenuBlockCard({ block }: Props) {
         {isEditMode && (
           <button
             onClick={() => addItem(block.id)}
-            className="mt-2 ml-3 py-1 text-xs text-gray-500 hover:text-black transition-colors flex items-center gap-1 edit-control"
+            className="ml-3 py-1 text-xs text-gray-500 hover:text-black transition-colors flex items-center gap-1 edit-control"
+            style={{ marginTop: `${8 * density}px` }}
           >
             <span className="text-gray-400">+</span> Добавить блюдо
           </button>
