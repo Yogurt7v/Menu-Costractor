@@ -73,6 +73,10 @@
   }
 
   .editable-block {
+    box-shadow: none !important;
+  }
+
+  .editable-block:not(.decorative-border) {
     border: none !important;
     padding: 0 !important;
   }
@@ -86,6 +90,45 @@
     box-shadow: none !important;
     resize: none !important;
     color: inherit !important;
+  }
+
+  .a4-page input, .a4-page textarea, .a4-page select, .a4-page.edit-mode input, .a4-page.edit-mode textarea, .a4-page.edit-mode select {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    resize: none !important;
+    color: inherit !important;
+  }
+
+  .a4-page select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+  }
+
+  .a4-page .editable-block {
+    box-shadow: none !important;
+  }
+
+  .price-line.print\:hidden {
+    display: none !important;
+  }
+
+  .a4-page .editable-block:not(.decorative-border),
+  .a4-page.edit-mode .editable-block:not(.decorative-border) {
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  .welcome-overlay {
+    display: none !important;
   }
 }
 

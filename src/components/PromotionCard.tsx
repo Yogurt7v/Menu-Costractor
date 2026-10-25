@@ -136,7 +136,7 @@ export default function PromotionCard({ promotion }: Props) {
 
         {/* Price field (optional) */}
         {(promotion.price || isEditMode) && (
-          <div className="flex items-baseline gap-0.5 flex-shrink-0 ml-auto">
+          <div className={`flex items-baseline gap-0.5 flex-shrink-0 ml-auto ${(promotion.price || '').trim() ? '' : 'print:hidden'}`}>
             {isEditMode ? (
               <>
                 <input
