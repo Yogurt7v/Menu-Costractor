@@ -201,30 +201,25 @@ export default function HeaderItemCard({ kind, suggestedStart }: Props) {
       return (
         <div className="flex flex-col items-center">
           {menu.logo ? (
-            isEditMode ? (
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="relative group cursor-pointer edit-control"
-                title="Нажмите, чтобы заменить логотип"
-              >
-                <img
-                  src={menu.logo}
-                  alt="Логотип"
-                  style={{ height: `${menu.logoSize}px`, maxWidth: '100%' }}
-                  className="object-contain"
-                />
-                <span className="absolute inset-0 flex items-center justify-center text-[9px] uppercase tracking-wider text-white bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                  Заменить
-                </span>
-              </button>
-            ) : (
+            <div className="relative group">
               <img
                 src={menu.logo}
                 alt="Логотип"
                 style={{ height: `${menu.logoSize}px`, maxWidth: '100%' }}
                 className="object-contain"
               />
-            )
+              {isEditMode && (
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer edit-control"
+                  title="Нажмите, чтобы заменить логотип"
+                >
+                  <span className="absolute inset-0 flex items-center justify-center text-[9px] uppercase tracking-wider text-white bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Заменить
+                  </span>
+                </button>
+              )}
+            </div>
           ) : isEditMode ? (
             <button
               onClick={() => fileRef.current?.click()}
