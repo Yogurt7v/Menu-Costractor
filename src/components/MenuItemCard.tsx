@@ -7,13 +7,14 @@ interface Props {
   blockId: string;
   item: MenuItemType;
   hidePrice?: boolean;
+  density?: number;
 }
 
 const DEFAULT_NAME_STYLE: TextStyle = { fontSize: 14, fontFamily: 'PT Serif, Georgia, serif', fontWeight: 400 };
 const DEFAULT_DESC_STYLE: TextStyle = { fontSize: 12, fontFamily: 'PT Serif, Georgia, serif', fontWeight: 400 };
 const DEFAULT_PRICE_STYLE: TextStyle = { fontSize: 14, fontFamily: 'PT Serif, Georgia, serif', fontWeight: 500 };
 
-export default function MenuItemCard({ blockId, item, hidePrice = false }: Props) {
+export default function MenuItemCard({ blockId, item, hidePrice = false, density = 1 }: Props) {
   const { updateItem, removeItem, updateItemNameStyle, updateItemDescriptionStyle, updateItemPriceStyle, isEditMode } = useMenu();
   const [showStyleControls, setShowStyleControls] = useState(false);
 
@@ -22,7 +23,10 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
   const priceStyle = item.priceStyle || DEFAULT_PRICE_STYLE;
 
   return (
-    <div className="group relative py-1.5">
+    <div
+      className="group relative"
+      style={{ paddingTop: `${6 * density}px`, paddingBottom: `${6 * density}px` }}
+    >
       {isEditMode && (
         <button
           onClick={() => {
@@ -43,7 +47,7 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
             type="text"
             value={item.name}
             onChange={(e) => updateItem(blockId, item.id, { name: e.target.value })}
-            className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none flex-shrink-0 max-w-[60%]"
+            className="bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-[70%] min-w-0 shrink"
             style={{
               fontSize: `${nameStyle.fontSize}px`,
               fontFamily: nameStyle.fontFamily,
@@ -53,7 +57,7 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
           />
         ) : (
           <span
-            className="min-w-0 max-w-[60%] break-words"
+            className="min-w-0 max-w-[70%] break-words"
             style={{
               fontSize: `${nameStyle.fontSize}px`,
               fontFamily: nameStyle.fontFamily,
@@ -66,11 +70,11 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
 
         {!hidePrice && (
           <>
-            <span className="price-line flex-1 mx-2">
+            <span className={`price-line flex-1 mx-2 ${(item.price || '').trim() ? '' : 'print:hidden'}`}>
               <span className="dots"></span>
             </span>
 
-            <div className="flex items-baseline gap-0.5 flex-shrink-0">
+            <div className={`flex items-baseline gap-0.5 flex-shrink-0 ${(item.price || '').trim() ? '' : 'print:hidden'}`}>
               {isEditMode ? (
                 <input
                   type="text"
@@ -104,7 +108,7 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
 
       {/* Description + weight */}
       {(item.description || item.weight || isEditMode) && (
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2" style={{ marginTop: `${2 * density}px` }}>
           {isEditMode ? (
             <input
               type="text"
@@ -134,13 +138,18 @@ export default function MenuItemCard({ blockId, item, hidePrice = false }: Props
           )}
 
           {isEditMode ? (
-            <input
-              type="text"
-              value={item.weight || ''}
-              onChange={(e) => updateItem(blockId, item.id, { weight: e.target.value })}
-              className="text-gray-400 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-10 text-right"
-              placeholder="г"
-            />
+            <div className="flex items-center gap-0.5">
+              <input
+                type="text"
+                value={item.weight || ''}
+                onChange={(e) => updateItem(blockId, item.id, { weight: e.target.value })}
+                className="text-gray-400 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none w-10 text-right"
+                placeholder="г"
+              />
+              {(item.weight || '').trim() && (
+                <span className="text-xs text-gray-400">г</span>
+              )}
+            </div>
           ) : (
             item.weight && (
               <span className="text-xs text-gray-400">{item.weight} г</span>
