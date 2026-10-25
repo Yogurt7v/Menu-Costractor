@@ -4,7 +4,7 @@ import SaveModal from './SaveModal';
 import HistoryPanel from './HistoryPanel';
 
 export default function Toolbar() {
-  const { menu, addBlock, addPromotion, addHeaderItem, isEditMode, toggleEditMode, updateMenuField, exportMenu, importMenu } = useMenu();
+  const { menu, addBlock, addPromotion, addHeaderItem, isEditMode, toggleEditMode, updateMenuField, exportMenu, importMenu, resetProject } = useMenu();
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
@@ -36,40 +36,10 @@ export default function Toolbar() {
     window.print();
   };
 
-  const handleSaveAsPdf = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    const content = document.querySelector('.a4-page');
-    if (!content) return;
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${menu.name || 'Меню'}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=PT+Serif:wght@400;700&display=swap');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'PT Serif', Georgia, serif; background: white; }
-          .a4-page { width: 210mm; min-height: 297mm; background: white; padding: 10mm 15mm; }
-          .no-print, .edit-control { display: none !important; }
-          .editable-block { border: none !important; padding: 0 !important; }
-          input, textarea { border: none !important; background: transparent !important; padding: 0 !important; outline: none !important; box-shadow: none !important; resize: none !important; color: inherit !important; }
-          h1, h2, h3, h4 { font-family: 'Cormorant Garamond', Georgia, serif; }
-          .price-line .dots { flex: 1; border-bottom: 1px dotted #bbb; margin: 0 6px; min-width: 20px; position: relative; top: -3px; }
-          .header-rule-thin { border: none; height: 0.5px; background: #ccc; margin: 0; }
-          .decorative-border { position: relative; }
-          .decorative-border::before, .decorative-border::after { content: ''; position: absolute; width: 12px; height: 12px; border: 1px solid currentColor; opacity: 0.3; }
-          .decorative-border::before { top: -2px; left: -2px; border-right: none; border-bottom: none; }
-          .decorative-border::after { bottom: -2px; right: -2px; border-left: none; border-top: none; }
-        </style>
-      </head>
-      <body>
-        ${content.outerHTML}
-        <script>window.onload = function() { window.print(); }</script>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
+  const handleNewProject = () => {
+    if (window.confirm('Начать новый проект? Текущее меню и все сохранённые конфигурации будут удалены. Это действие нельзя отменить.')) {
+      resetProject();
+    }
   };
 
   return (
@@ -92,6 +62,26 @@ export default function Toolbar() {
                 className="w-32 text-xs text-black bg-transparent py-0 border-b border-gray-300 hover:border-gray-500 focus:border-black outline-none transition-colors"
               />
             </label>
+            {isEditMode && (
+              <label className="flex items-center gap-1.5">
+                <span className="text-[9px] font-medium uppercase tracking-wider text-gray-400">
+                  Отступ
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={12}
+                  step={1}
+                  value={menu.blockGapMm}
+                  onChange={(e) => updateMenuField('blockGapMm', Number(e.target.value))}
+                  className="w-16 h-1 accent-black cursor-pointer"
+                  title="Вертикальный отступ между разделами"
+                />
+                <span className="text-[9px] text-gray-500 normal-case tracking-normal tabular-nums">
+                  {menu.blockGapMm} мм
+                </span>
+              </label>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -140,6 +130,13 @@ export default function Toolbar() {
               </div>
             )}
             <button
+              onClick={handleNewProject}
+              className="px-3 py-1.5 border border-red-600 text-red-600 text-xs uppercase tracking-wider hover:bg-red-600 hover:text-white transition-colors"
+              title="Сбросить меню и сохранённые конфигурации"
+            >
+              Новый проект
+            </button>
+            <button
               onClick={() => setShowSaveModal(true)}
               className="px-3 py-1.5 border border-black text-black text-xs uppercase tracking-wider hover:bg-black hover:text-white transition-colors"
             >
@@ -177,13 +174,7 @@ export default function Toolbar() {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
-              Печать
-            </button>
-            <button
-              onClick={handleSaveAsPdf}
-              className="px-3 py-1.5 border border-black text-black text-xs uppercase tracking-wider hover:bg-black hover:text-white transition-colors"
-            >
-              Сохранить как PDF
+              Печать / PDF
             </button>
             <button
               onClick={toggleEditMode}
